@@ -5,525 +5,144 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>FX Dark Pool Zones</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;touch-action:none;font-family:'Oxanium',sans-serif}
 
-:root {
-  --bg: #080b10;
-  --surface: rgba(12,16,24,0.95);
-  --border: rgba(0,200,255,0.15);
-  --accent: #00c8ff;
-  --bid: #00e896;
-  --ask: #ff3d6b;
-  --text: #c8d8e8;
-  --dim: #3a4a5a;
-  --panel-w: 260px;
-}
+#canvas{position:fixed;inset:0;pointer-events:none;z-index:100}
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* SETUP */
+#setup{position:fixed;inset:0;background:rgba(6,9,14,0.96);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.scard{background:#0d1420;border:1px solid rgba(0,200,255,0.2);border-radius:12px;padding:20px;width:100%;max-width:360px}
+.scard h2{font-size:14px;letter-spacing:2px;color:#00c8ff;margin-bottom:4px}
+.scard p{font-size:11px;color:#4a6a7a;margin-bottom:12px;line-height:1.6}
+.hint{background:rgba(0,200,255,0.07);border:1px solid rgba(0,200,255,0.15);border-radius:6px;padding:9px 11px;margin-bottom:12px;font-size:10px;color:#00c8ff;line-height:1.8}
+.hint a{color:#00c8ff}
+.scard label{display:block;font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase;margin:10px 0 4px}
+.scard input{width:100%;padding:9px 10px;font-family:'Share Tech Mono',monospace;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#c8d8e8;outline:none}
+.scard input:focus{border-color:rgba(0,200,255,0.4)}
+.erow{display:flex;gap:6px;margin:10px 0}
+.ebtn{flex:1;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;color:#4a6a7a;font-family:'Oxanium',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer}
+.ebtn.on{border-color:#00c8ff;color:#00c8ff;background:rgba(0,200,255,0.1)}
+#cbtn{width:100%;margin-top:12px;padding:11px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#00c8ff;font-family:'Oxanium',sans-serif;font-weight:700;font-size:12px;letter-spacing:3px;cursor:pointer}
+#cbtn:active{transform:scale(0.98)}
+#cstat{font-size:10px;text-align:center;margin-top:8px;min-height:14px;font-family:'Share Tech Mono',monospace;letter-spacing:1px}
 
-body {
-  background: transparent;
-  font-family: 'Oxanium', sans-serif;
-  overflow: hidden;
-  touch-action: none;
-}
+/* PANEL */
+#panel{position:fixed;top:12px;right:10px;width:230px;background:rgba(8,12,20,0.93);border:1px solid rgba(0,200,255,0.18);border-radius:10px;z-index:500;display:none;backdrop-filter:blur(12px);touch-action:none}
+#ph{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid rgba(0,200,255,0.1);cursor:move;touch-action:none}
+#ph .ptitle{font-size:10px;letter-spacing:2px;color:#00c8ff}
+.sdot{width:6px;height:6px;border-radius:50%;background:#00e896;box-shadow:0 0 6px #00e896;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#pb{padding:10px 12px}
 
-/* ═══ CANVAS LAYER ═══════════════════════════════════════════ */
-#canvas {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9980;
-}
+/* TICKER */
+#ticker{background:rgba(0,200,255,0.06);border:1px solid rgba(0,200,255,0.1);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+#psel{width:100%;background:transparent;border:none;color:#00c8ff;font-family:'Oxanium',sans-serif;font-weight:700;font-size:14px;outline:none;cursor:pointer;margin-bottom:5px}
+#psel option{background:#0d1420}
+.prow{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:10px}
+#lb{color:#00e896}#la{color:#ff3d6b}#ls{color:#3a5a6a}
 
-/* ═══ SETUP SCREEN ═══════════════════════════════════════════ */
-#setup-screen {
-  position: fixed;
-  inset: 0;
-  background: rgba(8,11,16,0.97);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  padding: 20px;
-}
+/* SECTION LABELS */
+.slbl{font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase;margin:8px 0 5px;display:flex;align-items:center;gap:6px}
+.slbl::after{content:'';flex:1;height:1px;background:rgba(0,200,255,0.08)}
 
-.setup-card {
-  width: 100%;
-  max-width: 420px;
-  background: rgba(12,18,28,0.98);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 0 60px rgba(0,200,255,0.1);
-}
+/* COLLAPSIBLE BOOK */
+#book-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin:8px 0 4px}
+#book-toggle span{font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase}
+#book-toggle .arr{font-size:10px;color:#3a5a6a;transition:transform 0.2s}
+#book-toggle.open .arr{transform:rotate(180deg)}
+#book-wrap{display:none;margin-bottom:4px}
+#book-wrap.show{display:block}
+.br{display:flex;align-items:center;gap:4px;margin-bottom:2px;font-family:'Share Tech Mono',monospace;font-size:9px}
+.bp{width:60px;color:#8a9aaa}
+.bw{flex:1;height:5px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden}
+.bb{height:100%;border-radius:2px}
+.bbb{background:#00e896}.bab{background:#ff3d6b}
+.bv{width:32px;text-align:right;color:#3a5a6a}
 
-.setup-header {
-  background: linear-gradient(135deg, rgba(0,200,255,0.12), rgba(0,232,150,0.06));
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border);
-}
+/* ZONE CONTROLS */
+.trow{display:flex;gap:5px;margin-bottom:7px}
+.tbtn{flex:1;padding:7px;border-radius:5px;border:1px solid;font-family:'Oxanium',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;transition:all .15s}
+.tbtn.bid{border-color:rgba(0,232,150,.3);color:#00e896;background:rgba(0,232,150,.06)}
+.tbtn.bid.on{background:rgba(0,232,150,.18);border-color:#00e896;box-shadow:0 0 10px rgba(0,232,150,.2)}
+.tbtn.ask{border-color:rgba(255,61,107,.3);color:#ff3d6b;background:rgba(255,61,107,.06)}
+.tbtn.ask.on{background:rgba(255,61,107,.18);border-color:#ff3d6b;box-shadow:0 0 10px rgba(255,61,107,.2)}
+.irow{display:flex;gap:5px;margin-bottom:6px}
+.iw{flex:1}
+.iw label{display:block;font-size:8px;letter-spacing:1px;color:#3a5a6a;text-transform:uppercase;margin-bottom:3px}
+.iw input{width:100%;padding:6px 7px;font-family:'Share Tech Mono',monospace;font-size:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:#c8d8e8;outline:none}
+.iw input:focus{border-color:rgba(0,200,255,.4)}
 
-.setup-header h1 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
+#pbtn{width:100%;margin-top:6px;padding:9px;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.4);border-radius:6px;color:#00c8ff;font-family:'Oxanium',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.5px;cursor:pointer;transition:all .15s}
+#pbtn:hover{background:rgba(0,200,255,.2)}
+#pbtn:active{transform:scale(.98)}
+#abtn{width:100%;margin-top:4px;padding:7px;border:1px solid rgba(0,232,150,.25);border-radius:6px;color:rgba(0,232,150,.7);font-family:'Oxanium',sans-serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;background:transparent;transition:all .15s}
+#abtn:hover{border-color:#00e896;color:#00e896}
 
-.setup-header p {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: var(--dim);
-  margin-top: 4px;
-  letter-spacing: 1px;
-}
+#zlist{margin-top:5px;max-height:110px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,200,255,.1) transparent}
+.zi{display:flex;align-items:center;justify-content:space-between;padding:4px 7px;margin-bottom:3px;border-radius:4px;border-left:2px solid;font-family:'Share Tech Mono',monospace;font-size:9px}
+.zi.bid{border-color:#00e896;color:#00e896;background:rgba(0,232,150,.07)}
+.zi.ask{border-color:#ff3d6b;color:#ff3d6b;background:rgba(255,61,107,.07)}
+.zdel{color:#3a5a6a;cursor:pointer;background:none;border:none;font-size:13px;padding:0 2px;line-height:1}
+.zdel:hover{color:#ff3d6b}
+#clrbtn{width:100%;margin-top:4px;padding:5px;border:1px solid rgba(255,255,255,.06);border-radius:4px;background:transparent;color:#3a5a6a;font-family:'Oxanium',sans-serif;font-size:9px;letter-spacing:1.5px;cursor:pointer;transition:all .15s}
+#clrbtn:hover{border-color:rgba(255,61,107,.3);color:#ff3d6b}
 
-.setup-body { padding: 20px 24px; }
+/* RING - no size constraint, arrows go way outside */
+#ring{position:fixed;width:180px;height:180px;z-index:400;display:none;touch-action:none;cursor:grab;overflow:visible}
+#ring:active{cursor:grabbing}
+#ring svg{overflow:visible;width:100%;height:100%}
 
-.field { margin-bottom: 14px; }
-
-.field label {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.field input, .field select {
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color 0.2s;
-  -webkit-appearance: none;
-}
-
-.field input:focus, .field select:focus {
-  border-color: rgba(0,200,255,0.5);
-  box-shadow: 0 0 0 3px rgba(0,200,255,0.06);
-}
-
-.field select option { background: #0d1520; }
-
-.env-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.env-btn {
-  flex: 1;
-  padding: 9px;
-  border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: transparent;
-  color: var(--dim);
-  font-family: 'Oxanium', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.env-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(0,200,255,0.1);
-}
-
-#connect-btn {
-  width: 100%;
-  padding: 13px;
-  background: linear-gradient(135deg, rgba(0,200,255,0.2), rgba(0,232,150,0.1));
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent);
-  font-family: 'Oxanium', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 4px;
-}
-#connect-btn:hover { background: rgba(0,200,255,0.25); box-shadow: 0 0 20px rgba(0,200,255,0.2); }
-
-#connect-status {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  text-align: center;
-  margin-top: 10px;
-  min-height: 16px;
-  letter-spacing: 1px;
-}
-
-.hint-box {
-  background: rgba(0,200,255,0.04);
-  border: 1px solid rgba(0,200,255,0.12);
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
-}
-.hint-box p {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--dim);
-  line-height: 1.7;
-  letter-spacing: 0.5px;
-}
-.hint-box a { color: var(--accent); text-decoration: none; }
-
-/* ═══ MAIN PANEL ════════════════════════════════════════════ */
-#panel {
-  position: fixed;
-  top: 20px;
-  right: 10px;
-  width: var(--panel-w);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  z-index: 9999;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 20px rgba(0,200,255,0.05);
-  display: none;
-  touch-action: none;
-}
-
-#panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  cursor: move;
-  background: rgba(0,200,255,0.04);
-  border-radius: 10px 10px 0 0;
-}
-
-.panel-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
-  color: var(--accent);
-  text-transform: uppercase;
-}
-
-.status-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--bid);
-  box-shadow: 0 0 8px var(--bid);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-#panel-body { padding: 12px 14px; }
-
-/* price ticker */
-#ticker-bar {
-  background: rgba(0,200,255,0.05);
-  border: 1px solid rgba(0,200,255,0.1);
-  border-radius: 6px;
-  padding: 8px 10px;
-  margin-bottom: 10px;
-}
-
-#pair-select-main {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--accent);
-  font-family: 'Oxanium', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 1px;
-  outline: none;
-  cursor: pointer;
-  -webkit-appearance: none;
-  margin-bottom: 4px;
-}
-#pair-select-main option { background: #0d1520; }
-
-.price-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-#live-bid, #live-ask {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-}
-#live-bid { color: var(--bid); }
-#live-ask { color: var(--ask); }
-
-#live-spread {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--dim);
-}
-
-/* order book mini bars */
-#book-bars {
-  margin-bottom: 10px;
-}
-.book-label {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.book-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 3px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-}
-.book-price { width: 58px; color: var(--text); }
-.book-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.04); border-radius: 2px; overflow: hidden; }
-.book-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
-.book-bar.bid-bar { background: rgba(0,232,150,0.5); }
-.book-bar.ask-bar { background: rgba(255,61,107,0.5); }
-.book-vol { width: 36px; text-align: right; color: var(--dim); }
-
-/* zone controls */
-.section-label {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin: 10px 0 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.section-label::after { content:''; flex:1; height:1px; background: var(--border); }
-
-.type-row { display:flex; gap:6px; margin-bottom:8px; }
-
-.type-btn {
-  flex:1; padding:7px 0;
-  border-radius:5px; border:1px solid;
-  font-family:'Oxanium',sans-serif;
-  font-weight:700; font-size:11px;
-  letter-spacing:1.5px; cursor:pointer;
-  text-transform:uppercase; transition:all 0.15s;
-}
-.type-btn.bid { border-color:rgba(0,232,150,0.3); color:var(--bid); background:rgba(0,232,150,0.05); }
-.type-btn.bid.active { background:rgba(0,232,150,0.15); border-color:var(--bid); box-shadow:0 0 10px rgba(0,232,150,0.2); }
-.type-btn.ask { border-color:rgba(255,61,107,0.3); color:var(--ask); background:rgba(255,61,107,0.05); }
-.type-btn.ask.active { background:rgba(255,61,107,0.15); border-color:var(--ask); box-shadow:0 0 10px rgba(255,61,107,0.2); }
-
-.input-row { display:flex; gap:6px; margin-bottom:6px; }
-.input-wrap { flex:1; }
-.input-wrap label { display:block; font-size:8px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; margin-bottom:3px; }
-.input-wrap input {
-  width:100%; background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:4px; color:var(--text);
-  font-family:'Share Tech Mono',monospace; font-size:12px;
-  padding:6px 7px; outline:none; transition:border-color 0.2s;
-}
-.input-wrap input:focus { border-color:rgba(0,200,255,0.4); }
-
-.chart-range-row { display:flex; gap:6px; margin-bottom:8px; }
-
-#print-btn {
-  width:100%; padding:10px 0;
-  background:linear-gradient(135deg,rgba(0,200,255,0.15),rgba(0,232,150,0.08));
-  border:1px solid rgba(0,200,255,0.4);
-  border-radius:6px; color:var(--accent);
-  font-family:'Oxanium',sans-serif; font-weight:700;
-  font-size:12px; letter-spacing:3px; text-transform:uppercase;
-  cursor:pointer; transition:all 0.15s;
-}
-#print-btn:hover { background:rgba(0,200,255,0.25); box-shadow:0 0 16px rgba(0,200,255,0.2); }
-#print-btn:active { transform:scale(0.98); }
-
-#auto-btn {
-  width:100%; padding:7px 0; margin-top:5px;
-  background:transparent;
-  border:1px solid rgba(0,232,150,0.2);
-  border-radius:6px; color:rgba(0,232,150,0.6);
-  font-family:'Oxanium',sans-serif; font-weight:600;
-  font-size:10px; letter-spacing:2px; text-transform:uppercase;
-  cursor:pointer; transition:all 0.15s;
-}
-#auto-btn:hover { border-color:var(--bid); color:var(--bid); }
-
-/* zone list */
-#zone-list {
-  margin-top:8px;
-  max-height:140px;
-  overflow-y:auto;
-  scrollbar-width:thin;
-  scrollbar-color:rgba(0,200,255,0.15) transparent;
-}
-.zone-item {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:5px 7px; margin-bottom:3px;
-  border-radius:4px; border-left:2px solid;
-  background:rgba(255,255,255,0.02);
-  font-family:'Share Tech Mono',monospace; font-size:9px;
-}
-.zone-item.bid { border-color:var(--bid); color:var(--bid); }
-.zone-item.ask { border-color:var(--ask); color:var(--ask); }
-.zone-del { color:var(--dim); cursor:pointer; padding:0 2px; font-size:11px; }
-.zone-del:hover { color:var(--ask); }
-
-#clear-btn {
-  width:100%; padding:6px; margin-top:5px;
-  background:transparent; border:1px solid rgba(255,255,255,0.06);
-  border-radius:4px; color:var(--dim);
-  font-family:'Oxanium',sans-serif; font-size:9px;
-  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
-  transition:all 0.15s;
-}
-#clear-btn:hover { border-color:rgba(255,61,107,0.4); color:var(--ask); }
-
-/* auto zone alert */
-#auto-alert {
-  display:none;
-  position:fixed; top:20px; left:50%; transform:translateX(-50%);
-  background:rgba(12,18,28,0.97);
-  border:1px solid var(--bid);
-  border-radius:8px; padding:12px 20px;
-  z-index:99998; text-align:center;
-  box-shadow:0 0 30px rgba(0,232,150,0.2);
-  min-width:240px;
-}
-#auto-alert .alert-title {
-  font-size:11px; font-weight:700; letter-spacing:2px;
-  color:var(--bid); text-transform:uppercase; margin-bottom:4px;
-}
-#auto-alert .alert-price {
-  font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--text);
-}
-#auto-alert .alert-btns { display:flex; gap:8px; margin-top:10px; }
-#auto-alert .alert-btns button {
-  flex:1; padding:7px; border-radius:5px; cursor:pointer;
-  font-family:'Oxanium',sans-serif; font-weight:700; font-size:11px; letter-spacing:1px;
-  border:1px solid; transition:all 0.15s;
-}
-#alert-confirm { border-color:var(--bid); color:var(--bid); background:rgba(0,232,150,0.1); }
-#alert-dismiss { border-color:var(--dim); color:var(--dim); background:transparent; }
-
-/* ═══ RING TOOL ═════════════════════════════════════════════ */
-#ring-tool {
-  position:fixed;
-  width:180px; height:180px;
-  z-index:9995;
-  top:50%; left:40%;
-  transform:translate(-50%,-50%);
-  touch-action:none;
-  display:none;
-}
-
-#ring-svg { width:100%; height:100%; overflow:visible; }
-
-.ring-outer { fill:none; stroke:rgba(160,180,220,0.5); stroke-width:2; filter:drop-shadow(0 0 8px rgba(160,180,220,0.3)); }
-.ring-inner { fill:none; stroke:rgba(160,180,220,0.15); stroke-width:1; }
-.ring-cross { stroke:rgba(160,180,220,0.25); stroke-width:1; }
-.ring-tick  { stroke:rgba(160,180,220,0.3); stroke-width:1.5; }
-
-/* ═══ BOTTOM TOOLBAR (mobile) ═══════════════════════════════ */
-#toolbar {
-  position:fixed; bottom:0; left:0; right:0;
-  height:54px;
-  background:rgba(8,11,16,0.97);
-  border-top:1px solid var(--border);
-  display:none;
-  align-items:center;
-  justify-content:space-around;
-  padding:0 10px;
-  z-index:99990;
-}
-
-.tb-btn {
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  background:transparent; border:none; cursor:pointer; padding:4px 8px;
-}
-.tb-btn .tb-icon { font-size:18px; line-height:1; }
-.tb-btn .tb-label { font-family:'Oxanium',sans-serif; font-size:8px; letter-spacing:1px; color:var(--dim); text-transform:uppercase; }
-.tb-btn.active .tb-label { color:var(--accent); }
-
-/* ═══ MISC ══════════════════════════════════════════════════ */
-.flicker { animation: flicker 0.15s ease; }
-@keyframes flicker { 0%{opacity:1}50%{opacity:0.3}100%{opacity:1} }
+/* AUTO ALERT */
+#aalert{display:none;position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(8,12,20,0.96);border:1px solid #00e896;border-radius:10px;padding:14px 18px;z-index:9000;text-align:center;min-width:220px;backdrop-filter:blur(10px)}
+.aat{font-size:10px;letter-spacing:2px;color:#00e896;margin-bottom:5px}
+.aap{font-family:'Share Tech Mono',monospace;font-size:15px;color:#c8d8e8}
+.aad{font-family:'Share Tech Mono',monospace;font-size:9px;color:#3a5a6a;margin-top:3px}
+.aabs{display:flex;gap:8px;margin-top:11px}
+.aabs button{flex:1;padding:7px;border-radius:5px;font-family:'Oxanium',sans-serif;font-weight:700;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s}
+#aaok{border:1px solid #00e896;color:#00e896;background:rgba(0,232,150,.1)}
+#aaok:hover{background:rgba(0,232,150,.2)}
+#aano{border:1px solid rgba(255,255,255,.1);color:#3a5a6a;background:transparent}
 </style>
 </head>
 <body>
 
-<!-- SVG zone canvas -->
 <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
 
-<!-- ── SETUP SCREEN ───────────────────────────────────────── -->
-<div id="setup-screen">
-  <div class="setup-card">
-    <div class="setup-header">
-      <h1>FX Dark Pool Zones</h1>
-      <p>OANDA API · MAJOR PAIRS · INSTITUTIONAL FLOW</p>
+<!-- SETUP -->
+<div id="setup">
+  <div class="scard">
+    <h2>FX DARK POOL ZONES</h2>
+    <p>Connect your OANDA account. Works on iPhone — bookmark to home screen after connecting.</p>
+    <div class="hint">
+      Get free API key:<br>
+      <a href="https://www.oanda.com" target="_blank">oanda.com</a> → My Account → Manage API Access → Generate token
     </div>
-    <div class="setup-body">
-      <div class="hint-box">
-        <p>
-          FREE with any OANDA account.<br>
-          Get your API key: <a href="https://www.oanda.com" target="_blank">oanda.com</a> → My Account → Manage API Access<br>
-          Use <b>fxTrade Practice</b> for demo, <b>fxTrade</b> for live.
-        </p>
-      </div>
-
-      <div class="field">
-        <label>OANDA API Key</label>
-        <input type="password" id="api-key-input" placeholder="Enter your OANDA API token">
-      </div>
-
-      <div class="field">
-        <label>Account ID</label>
-        <input type="text" id="account-id-input" placeholder="e.g. 001-001-1234567-001">
-      </div>
-
-      <div class="field">
-        <label>Environment</label>
-        <div class="env-row">
-          <button class="env-btn active" id="env-practice" onclick="setEnv('practice')">PRACTICE</button>
-          <button class="env-btn" id="env-live" onclick="setEnv('live')">LIVE</button>
-        </div>
-      </div>
-
-      <button id="connect-btn" onclick="connectOanda()">CONNECT TO OANDA</button>
-      <div id="connect-status"></div>
+    <label>OANDA API Key</label>
+    <input type="password" id="akey" placeholder="Paste your API token here">
+    <label>Account ID</label>
+    <input type="text" id="acid" placeholder="e.g. 101-004-38838501-001">
+    <label>Environment</label>
+    <div class="erow">
+      <button class="ebtn on" id="ep" onclick="setEnv('practice')">PRACTICE</button>
+      <button class="ebtn" id="el" onclick="setEnv('live')">LIVE</button>
     </div>
+    <button id="cbtn" onclick="doConnect()">CONNECT</button>
+    <div id="cstat"></div>
   </div>
 </div>
 
-<!-- ── MAIN PANEL ─────────────────────────────────────────── -->
+<!-- PANEL -->
 <div id="panel">
-  <div id="panel-header">
-    <span class="panel-title">FX Zones</span>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span id="pair-name" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim)"></span>
-      <div class="status-dot"></div>
-    </div>
+  <div id="ph">
+    <span class="ptitle">FX ZONES</span>
+    <div class="sdot"></div>
   </div>
-  <div id="panel-body">
+  <div id="pb">
 
-    <!-- Live ticker -->
-    <div id="ticker-bar">
-      <select id="pair-select-main" onchange="changePair(this.value)">
+    <div id="ticker">
+      <select id="psel" onchange="changePair(this.value)">
         <option value="EUR_USD">EUR/USD</option>
         <option value="GBP_USD">GBP/USD</option>
         <option value="USD_JPY">USD/JPY</option>
@@ -535,667 +154,425 @@ body {
         <option value="EUR_JPY">EUR/JPY</option>
         <option value="GBP_JPY">GBP/JPY</option>
       </select>
-      <div class="price-row">
-        <span id="live-bid">BID –</span>
-        <span id="live-spread">SPR –</span>
-        <span id="live-ask">ASK –</span>
+      <div class="prow">
+        <span id="lb">BID –</span>
+        <span id="ls">SPD –</span>
+        <span id="la">ASK –</span>
       </div>
     </div>
 
-    <!-- Order book -->
-    <div id="book-bars">
-      <div class="book-label">Order Book (Top Levels)</div>
-      <div id="book-ask-rows"></div>
+    <!-- Collapsible order book -->
+    <div id="book-toggle" onclick="toggleBook()">
+      <span>Order Book</span>
+      <span class="arr">▾</span>
+    </div>
+    <div id="book-wrap">
+      <div id="ar"></div>
       <div style="height:3px"></div>
-      <div id="book-bid-rows"></div>
+      <div id="br2"></div>
     </div>
 
-    <!-- Zone controls -->
-    <div class="section-label">Print Zone</div>
-
-    <div class="type-row">
-      <button class="type-btn bid active" id="btn-bid" onclick="selectType('bid')">▲ BID</button>
-      <button class="type-btn ask" id="btn-ask" onclick="selectType('ask')">▼ ASK</button>
+    <div class="slbl">Zone Type</div>
+    <div class="trow">
+      <button class="tbtn bid on" id="btnb" onclick="setType('bid')">▲ BID</button>
+      <button class="tbtn ask" id="btna" onclick="setType('ask')">▼ ASK</button>
     </div>
 
-    <div class="input-row">
-      <div class="input-wrap">
-        <label>Top Price</label>
-        <input type="number" id="in-top" step="0.00001" placeholder="1.08500">
-      </div>
-      <div class="input-wrap">
-        <label>Bottom Price</label>
-        <input type="number" id="in-bot" step="0.00001" placeholder="1.08450">
-      </div>
+    <div class="slbl">Zone Prices</div>
+    <div class="irow">
+      <div class="iw"><label>Top</label><input id="itop" type="number" step="0.00001" placeholder="High"></div>
+      <div class="iw"><label>Bottom</label><input id="ibot" type="number" step="0.00001" placeholder="Low"></div>
     </div>
 
-    <div class="section-label">Chart Range</div>
-    <div class="chart-range-row">
-      <div class="input-wrap">
-        <label>Chart Top</label>
-        <input type="number" id="in-chart-top" step="0.00001" placeholder="High">
-      </div>
-      <div class="input-wrap">
-        <label>Chart Bot</label>
-        <input type="number" id="in-chart-bot" step="0.00001" placeholder="Low">
-      </div>
+    <div class="slbl">Chart Visible Range</div>
+    <div class="irow">
+      <div class="iw"><label>Chart Top</label><input id="ict" type="number" step="0.00001" placeholder="Visible high"></div>
+      <div class="iw"><label>Chart Bot</label><input id="icb" type="number" step="0.00001" placeholder="Visible low"></div>
     </div>
 
-    <button id="print-btn" onclick="printZone()">⊕ PRINT ZONE</button>
-    <button id="auto-btn" onclick="autoDetect()">⚡ AUTO-DETECT FROM ORDER BOOK</button>
+    <button id="pbtn" onclick="printZone()">⊕ PRINT ZONE</button>
+    <button id="abtn" onclick="doAuto()">⚡ SCAN ORDER BOOK</button>
 
-    <!-- Zone list -->
-    <div class="section-label">Active Zones</div>
-    <div id="zone-list"></div>
-    <button id="clear-btn" onclick="clearAll()">CLEAR ALL ZONES</button>
+    <div class="slbl">Active Zones</div>
+    <div id="zlist"></div>
+    <button id="clrbtn" onclick="clearAll()">CLEAR ALL</button>
   </div>
 </div>
 
-<!-- Ring tool -->
-<div id="ring-tool">
-  <svg id="ring-svg" viewBox="-90 -90 180 180">
+<!-- RING TOOL - arrows extend way outside the circle -->
+<div id="ring">
+  <svg viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg" overflow="visible">
     <defs>
-      <filter id="fr"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      <filter id="fg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="gr"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="gg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     </defs>
-    <circle class="ring-outer" r="72"/>
-    <circle class="ring-inner" r="36"/>
-    <circle class="ring-inner" r="12"/>
-    <line class="ring-cross" x1="-72" y1="0" x2="72" y2="0"/>
-    <line class="ring-cross" x1="0" y1="-72" x2="0" y2="72"/>
-    <!-- tick marks every 30deg -->
-    <g class="ring-tick">
-      <line x1="0" y1="-68" x2="0" y2="-76"/>
-      <line x1="0" y1="68" x2="0" y2="76"/>
-      <line x1="-68" y1="0" x2="-76" y2="0"/>
-      <line x1="68" y1="0" x2="76" y2="0"/>
-      <line transform="rotate(30)"  x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(60)"  x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(120)" x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(150)" x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(210)" x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(240)" x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(300)" x1="0" y1="-68" x2="0" y2="-76"/>
-      <line transform="rotate(330)" x1="0" y1="-68" x2="0" y2="-76"/>
+    <!-- ring -->
+    <circle r="72" fill="none" stroke="rgba(160,180,220,0.45)" stroke-width="2"/>
+    <circle r="36" fill="none" stroke="rgba(160,180,220,0.1)" stroke-width="1"/>
+    <circle r="12" fill="none" stroke="rgba(160,180,220,0.1)" stroke-width="1"/>
+    <line x1="-72" y1="0" x2="72" y2="0" stroke="rgba(160,180,220,0.2)" stroke-width="1"/>
+    <line x1="0" y1="-72" x2="0" y2="72" stroke="rgba(160,180,220,0.2)" stroke-width="1"/>
+    <line x1="0" y1="-68" x2="0" y2="-76" stroke="rgba(160,180,220,0.35)" stroke-width="1.5"/>
+    <line x1="0" y1="68" x2="0" y2="76" stroke="rgba(160,180,220,0.35)" stroke-width="1.5"/>
+    <line x1="-68" y1="0" x2="-76" y2="0" stroke="rgba(160,180,220,0.35)" stroke-width="1.5"/>
+    <line x1="68" y1="0" x2="76" y2="0" stroke="rgba(160,180,220,0.35)" stroke-width="1.5"/>
+
+    <!-- RED handle - top of zone, starts above center, arrow extends far up -->
+    <g id="hr" style="touch-action:none">
+      <line id="rline" x1="0" y1="-8" x2="0" y2="-110" stroke="#ff3d6b" stroke-width="2.5" stroke-linecap="round"/>
+      <polygon id="rpoly" points="0,-124 -9,-108 9,-108" fill="#ff3d6b" filter="url(#gr)"/>
+      <circle id="rcirc" cx="0" cy="-8" r="9" fill="rgba(255,61,107,0.15)" stroke="#ff3d6b" stroke-width="1.5"/>
+      <text id="rtx" x="0" y="-130" text-anchor="middle" font-size="9" fill="#ff3d6b" font-family="Share Tech Mono,monospace">TOP</text>
     </g>
 
-    <!-- RED handle (top of zone) -->
-    <g id="h-red" style="cursor:ns-resize;touch-action:none">
-      <line id="rl" x1="0" y1="0" x2="0" y2="-40" stroke="#ff3d6b" stroke-width="2" stroke-linecap="round"/>
-      <polygon id="rp" points="0,-58 -8,-42 8,-42" fill="#ff3d6b" filter="url(#fr)"/>
-      <circle cx="0" cy="0" r="8" fill="rgba(255,61,107,0.15)" stroke="#ff3d6b" stroke-width="1.5"/>
-      <text y="-62" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="8" fill="#ff3d6b" letter-spacing="1" id="red-price-label">ASK</text>
+    <!-- GREEN handle - bottom of zone, starts below center, arrow extends far down -->
+    <g id="hg" style="touch-action:none">
+      <line id="gline" x1="0" y1="8" x2="0" y2="110" stroke="#00e896" stroke-width="2.5" stroke-linecap="round"/>
+      <polygon id="gpoly" points="0,124 -9,108 9,108" fill="#00e896" filter="url(#gg)"/>
+      <circle id="gcirc" cx="0" cy="8" r="9" fill="rgba(0,232,150,0.15)" stroke="#00e896" stroke-width="1.5"/>
+      <text id="gtx" x="0" y="140" text-anchor="middle" font-size="9" fill="#00e896" font-family="Share Tech Mono,monospace">BOT</text>
     </g>
 
-    <!-- GREEN handle (bottom of zone) -->
-    <g id="h-green" style="cursor:ns-resize;touch-action:none">
-      <line id="gl" x1="0" y1="0" x2="0" y2="40" stroke="#00e896" stroke-width="2" stroke-linecap="round"/>
-      <polygon id="gp" points="0,58 -8,42 8,42" fill="#00e896" filter="url(#fg)"/>
-      <circle cx="0" cy="0" r="8" fill="rgba(0,232,150,0.15)" stroke="#00e896" stroke-width="1.5"/>
-      <text y="72" text-anchor="middle" font-family="Share Tech Mono,monospace" font-size="8" fill="#00e896" letter-spacing="1" id="green-price-label">BID</text>
-    </g>
-
-    <circle cx="0" cy="0" r="4" fill="rgba(200,216,232,0.5)"/>
+    <circle cx="0" cy="0" r="4" fill="rgba(160,180,220,0.5)"/>
     <circle cx="0" cy="0" r="1.5" fill="white"/>
   </svg>
 </div>
 
-<!-- Auto-detect alert -->
-<div id="auto-alert">
-  <div class="alert-title">⚡ LARGE ORDER DETECTED</div>
-  <div class="alert-price" id="alert-price-text">–</div>
-  <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px" id="alert-detail-text"></div>
-  <div class="alert-btns">
-    <button id="alert-confirm" onclick="confirmAutoZone()">✓ PRINT ZONE</button>
-    <button id="alert-dismiss" onclick="dismissAlert()">DISMISS</button>
+<!-- AUTO ALERT -->
+<div id="aalert">
+  <div class="aat">⚡ LARGE ORDER CLUSTER</div>
+  <div class="aap" id="aapx">–</div>
+  <div class="aad" id="aadet"></div>
+  <div class="aabs">
+    <button id="aaok" onclick="confirmAuto()">✓ PRINT ZONE</button>
+    <button id="aano" onclick="dismissAuto()">DISMISS</button>
   </div>
 </div>
 
-<!-- Mobile toolbar -->
-<div id="toolbar">
-  <button class="tb-btn active" onclick="tbTab('ring')">
-    <span class="tb-icon">⊙</span>
-    <span class="tb-label">Ring</span>
-  </button>
-  <button class="tb-btn" onclick="tbTab('zones')">
-    <span class="tb-icon">▦</span>
-    <span class="tb-label">Zones</span>
-  </button>
-  <button class="tb-btn" onclick="tbTab('book')">
-    <span class="tb-icon">📊</span>
-    <span class="tb-label">Book</span>
-  </button>
-  <button class="tb-btn" onclick="tbTab('auto')">
-    <span class="tb-icon">⚡</span>
-    <span class="tb-label">Auto</span>
-  </button>
-</div>
-
 <script>
-// ═══ STATE ═══════════════════════════════════════════════════════
-let API_KEY = '', ACCOUNT_ID = '', ENV = 'practice';
-let currentPair = 'EUR_USD';
-let zoneType = 'bid';
-let zones = [];
-let pendingAutoZone = null;
-let pricePollingInterval = null;
-let bookPollingInterval = null;
+let ENV='practice', PAIR='EUR_USD', ZT='bid';
+let zones=[], pending=null;
+let AK='', AID='';
+// ring position (center of ring in viewport px)
+let rX=120, rY=350;
+// arrow tip offsets in SVG units from ring center
+// negative = up (red/top), positive = down (green/bottom)
+let redSVG=-110, grnSVG=110;
+// drag state
+let dRing=false, dH=null, dOX=0, dOY=0, dHY=0;
+let panD=false, pdx=0, pdy=0;
 
-// Ring state
-let ringX = window.innerWidth * 0.4, ringY = window.innerHeight * 0.5;
-let redOffY = -55, greenOffY = 55;
-let draggingRing = false, draggingHandle = null;
-let dragStartX = 0, dragStartY = 0, ringStartX = 0, ringStartY = 0;
-let handleStartY = 0;
+const ringEl=document.getElementById('ring');
+const panelEl=document.getElementById('panel');
 
-const isMobile = () => window.innerWidth < 600;
+function isJPY(p){return(p||PAIR).includes('JPY')}
+function dp(p){return isJPY(p)?3:5}
+function oBase(){return`https://api-${ENV==='practice'?'fxpractice':'fxtrade'}.oanda.com`}
+function oHdr(){return{'Authorization':'Bearer '+AK,'Content-Type':'application/json'}}
 
-// ═══ ENV ══════════════════════════════════════════════════════════
-function setEnv(e) {
-  ENV = e;
-  document.getElementById('env-practice').classList.toggle('active', e === 'practice');
-  document.getElementById('env-live').classList.toggle('active', e === 'live');
+function setEnv(e){
+  ENV=e;
+  document.getElementById('ep').classList.toggle('on',e==='practice');
+  document.getElementById('el').classList.toggle('on',e==='live');
 }
 
-function oandaBase() {
-  return ENV === 'practice'
-    ? 'https://api-fxpractice.oanda.com'
-    : 'https://api-fxtrade.oanda.com';
+function stat(msg,col){
+  const s=document.getElementById('cstat');
+  s.textContent=msg;
+  s.style.color=col||'#4a6a7a';
 }
 
-function oandaHeaders() {
-  return { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' };
+async function doConnect(){
+  AK=document.getElementById('akey').value.trim();
+  AID=document.getElementById('acid').value.trim();
+  if(!AK||!AID){stat('Enter API key and account ID','#ff3d6b');return}
+  stat('Connecting...','#4a6a7a');
+  try{
+    const r=await fetch(`${oBase()}/v3/accounts/${AID}`,{headers:oHdr()});
+    if(!r.ok)throw new Error('HTTP '+r.status+' — check key & account ID');
+    const d=await r.json();
+    stat('✓ Connected: '+(d.account?.alias||AID),'#00e896');
+    setTimeout(()=>{
+      document.getElementById('setup').style.display='none';
+      panelEl.style.display='block';
+      ringEl.style.display='block';
+      rX=Math.min(window.innerWidth*0.25, 160);
+      rY=window.innerHeight*0.45;
+      posRing();
+      startPoll();
+    },700);
+  }catch(e){stat('✗ '+e.message,'#ff3d6b')}
 }
 
-// ═══ CONNECT ═════════════════════════════════════════════════════
-async function connectOanda() {
-  API_KEY    = document.getElementById('api-key-input').value.trim();
-  ACCOUNT_ID = document.getElementById('account-id-input').value.trim();
-  const status = document.getElementById('connect-status');
+let pollT=null;
+function startPoll(){fetchPrice();fetchBook();pollT=setInterval(()=>{fetchPrice();},3000);setInterval(fetchBook,8000)}
 
-  if (!API_KEY || !ACCOUNT_ID) {
-    status.style.color = '#ff3d6b';
-    status.textContent = '⚠ ENTER API KEY AND ACCOUNT ID';
-    return;
-  }
-
-  status.style.color = '#00c8ff';
-  status.textContent = 'CONNECTING…';
-
-  try {
-    const res = await fetch(`${oandaBase()}/v3/accounts/${ACCOUNT_ID}`, { headers: oandaHeaders() });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const name = data.account?.alias || data.account?.id || 'Account';
-
-    status.style.color = '#00e896';
-    status.textContent = `✓ CONNECTED · ${name}`;
-
-    setTimeout(() => {
-      document.getElementById('setup-screen').style.display = 'none';
-      document.getElementById('panel').style.display = 'block';
-      document.getElementById('ring-tool').style.display = 'block';
-      if (isMobile()) document.getElementById('toolbar').style.display = 'flex';
-      positionRing();
-      startPolling();
-    }, 800);
-
-  } catch (err) {
-    status.style.color = '#ff3d6b';
-    status.textContent = `✗ ${err.message} — check key & account ID`;
-  }
+async function fetchPrice(){
+  try{
+    const r=await fetch(`${oBase()}/v3/accounts/${AID}/pricing?instruments=${PAIR}`,{headers:oHdr()});
+    const d=await r.json();
+    const p=d.prices?.[0];if(!p)return;
+    const bid=parseFloat(p.bids?.[0]?.price||0);
+    const ask=parseFloat(p.asks?.[0]?.price||0);
+    const spd=((ask-bid)*(isJPY()?100:10000)).toFixed(1);
+    document.getElementById('lb').textContent='B '+bid.toFixed(dp());
+    document.getElementById('la').textContent='A '+ask.toFixed(dp());
+    document.getElementById('ls').textContent=spd+'p';
+    const pip=isJPY()?0.01:0.0001;
+    const ict=document.getElementById('ict'),icb=document.getElementById('icb');
+    if(!ict.dataset.t)ict.placeholder=(ask+pip*30).toFixed(dp());
+    if(!icb.dataset.t)icb.placeholder=(bid-pip*30).toFixed(dp());
+  }catch(e){}
 }
 
-// ═══ POLLING ═════════════════════════════════════════════════════
-function startPolling() {
-  fetchPrice();
-  fetchOrderBook();
-  pricePollingInterval = setInterval(fetchPrice, 2000);
-  bookPollingInterval  = setInterval(fetchOrderBook, 5000);
+async function fetchBook(){
+  try{
+    const r=await fetch(`${oBase()}/v3/instruments/${PAIR}/orderBook`,{headers:oHdr()});
+    const d=await r.json();
+    const bks=d.orderBook?.buckets||[];if(!bks.length)return;
+    const mid=parseFloat(d.orderBook?.price||0);
+    const asks=bks.filter(b=>parseFloat(b.price)>mid).slice(-4).reverse();
+    const bids=bks.filter(b=>parseFloat(b.price)<=mid).slice(-4);
+    renderBook('ar',asks,'bab');
+    renderBook('br2',bids,'bbb');
+    autoSpike(bks,mid);
+  }catch(e){}
 }
 
-async function fetchPrice() {
-  try {
-    const res = await fetch(
-      `${oandaBase()}/v3/accounts/${ACCOUNT_ID}/pricing?instruments=${currentPair}`,
-      { headers: oandaHeaders() }
-    );
-    const data = await res.json();
-    const price = data.prices?.[0];
-    if (!price) return;
-
-    const bid = parseFloat(price.bids?.[0]?.price || 0);
-    const ask = parseFloat(price.asks?.[0]?.price || 0);
-    const spread = ((ask - bid) * (currentPair.includes('JPY') ? 100 : 10000)).toFixed(1);
-
-    document.getElementById('live-bid').textContent = `B ${bid.toFixed(currentPair.includes('JPY') ? 3 : 5)}`;
-    document.getElementById('live-ask').textContent = `A ${ask.toFixed(currentPair.includes('JPY') ? 3 : 5)}`;
-    document.getElementById('live-spread').textContent = `${spread}p`;
-
-    // auto-fill chart range hint
-    const topInput = document.getElementById('in-chart-top');
-    const botInput = document.getElementById('in-chart-bot');
-    if (!topInput.dataset.touched) {
-      const pip = currentPair.includes('JPY') ? 0.01 : 0.0001;
-      topInput.placeholder = (ask + pip * 30).toFixed(currentPair.includes('JPY') ? 3 : 5);
-      botInput.placeholder = (bid - pip * 30).toFixed(currentPair.includes('JPY') ? 3 : 5);
-    }
-  } catch (e) { /* silent */ }
-}
-
-async function fetchOrderBook() {
-  try {
-    const instrument = currentPair;
-    const res = await fetch(
-      `${oandaBase()}/v3/instruments/${instrument}/orderBook`,
-      { headers: oandaHeaders() }
-    );
-    const data = await res.json();
-    const buckets = data.orderBook?.buckets || [];
-    if (!buckets.length) return;
-
-    // get current mid price to split bid/ask
-    const midStr = data.orderBook?.price;
-    const mid = midStr ? parseFloat(midStr) : 0;
-
-    // top 4 bid (below mid) and ask (above mid) buckets by long/short %
-    const asks = buckets.filter(b => parseFloat(b.price) > mid).slice(-4).reverse();
-    const bids = buckets.filter(b => parseFloat(b.price) <= mid).slice(-4);
-
-    renderBookRows('book-ask-rows', asks, 'ask');
-    renderBookRows('book-bid-rows', bids, 'bid');
-
-    // auto-detect: check for buckets with unusually high % (>3x average)
-    const allPct = buckets.map(b => parseFloat(b.longCountPercent) + parseFloat(b.shortCountPercent));
-    const avg = allPct.reduce((a,b)=>a+b,0) / allPct.length;
-    const spike = buckets.find(b => {
-      const pct = parseFloat(b.longCountPercent) + parseFloat(b.shortCountPercent);
-      return pct > avg * 4 && pct > 2;
-    });
-
-    if (spike && !pendingAutoZone) {
-      const px = parseFloat(spike.price);
-      const pip = currentPair.includes('JPY') ? 0.01 : 0.0001;
-      const isAbove = px > mid;
-      pendingAutoZone = {
-        top: (px + pip * 5).toFixed(currentPair.includes('JPY') ? 3 : 5),
-        bot: (px - pip * 5).toFixed(currentPair.includes('JPY') ? 3 : 5),
-        type: isAbove ? 'ask' : 'bid',
-        pct: (parseFloat(spike.longCountPercent) + parseFloat(spike.shortCountPercent)).toFixed(2)
-      };
-      showAutoAlert(pendingAutoZone);
-    }
-
-  } catch (e) { /* silent */ }
-}
-
-function renderBookRows(containerId, buckets, side) {
-  const c = document.getElementById(containerId);
-  if (!buckets.length) { c.innerHTML = ''; return; }
-  const maxPct = Math.max(...buckets.map(b => parseFloat(b.longCountPercent) + parseFloat(b.shortCountPercent)));
-  const dec = currentPair.includes('JPY') ? 3 : 5;
-  c.innerHTML = buckets.map(b => {
-    const pct = parseFloat(b.longCountPercent) + parseFloat(b.shortCountPercent);
-    const w = maxPct > 0 ? (pct / maxPct * 100).toFixed(0) : 0;
-    return `<div class="book-row">
-      <span class="book-price">${parseFloat(b.price).toFixed(dec)}</span>
-      <div class="book-bar-wrap"><div class="book-bar ${side}-bar" style="width:${w}%"></div></div>
-      <span class="book-vol">${pct.toFixed(1)}%</span>
-    </div>`;
+function renderBook(id,bks,cls){
+  const c=document.getElementById(id);if(!bks.length){c.innerHTML='';return}
+  const mx=Math.max(...bks.map(b=>parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent)));
+  c.innerHTML=bks.map(b=>{
+    const p=parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent);
+    const w=mx>0?((p/mx)*100).toFixed(0):0;
+    return`<div class="br"><span class="bp">${parseFloat(b.price).toFixed(dp())}</span><div class="bw"><div class="bb ${cls}" style="width:${w}%"></div></div><span class="bv">${p.toFixed(1)}%</span></div>`;
   }).join('');
 }
 
-// ═══ AUTO DETECT ═════════════════════════════════════════════════
-function autoDetect() {
-  if (pendingAutoZone) { showAutoAlert(pendingAutoZone); return; }
-  fetchOrderBook();
-  document.getElementById('auto-btn').textContent = '⚡ SCANNING…';
-  setTimeout(() => { document.getElementById('auto-btn').textContent = '⚡ AUTO-DETECT FROM ORDER BOOK'; }, 2000);
-}
-
-function showAutoAlert(z) {
-  const el = document.getElementById('auto-alert');
-  document.getElementById('alert-price-text').textContent = `${z.top} — ${z.bot}`;
-  document.getElementById('alert-detail-text').textContent = `${z.type.toUpperCase()} POOL · ${z.pct}% CLUSTER · ${currentPair.replace('_','/')}`;
-  el.style.borderColor = z.type === 'bid' ? 'var(--bid)' : 'var(--ask)';
-  el.style.display = 'block';
-}
-
-function confirmAutoZone() {
-  if (!pendingAutoZone) return;
-  document.getElementById('in-top').value = pendingAutoZone.top;
-  document.getElementById('in-bot').value = pendingAutoZone.bot;
-  selectType(pendingAutoZone.type);
-  dismissAlert();
-  printZone();
-}
-
-function dismissAlert() {
-  document.getElementById('auto-alert').style.display = 'none';
-  pendingAutoZone = null;
-}
-
-// ═══ PAIR CHANGE ═════════════════════════════════════════════════
-function changePair(p) {
-  currentPair = p;
-  document.getElementById('pair-name').textContent = p.replace('_','/');
-  pendingAutoZone = null;
-  fetchPrice();
-  fetchOrderBook();
-}
-
-// ═══ ZONE TYPE ═══════════════════════════════════════════════════
-function selectType(t) {
-  zoneType = t;
-  document.getElementById('btn-bid').classList.toggle('active', t === 'bid');
-  document.getElementById('btn-ask').classList.toggle('active', t === 'ask');
-}
-
-// ═══ PRINT ZONE ══════════════════════════════════════════════════
-function printZone() {
-  const top      = parseFloat(document.getElementById('in-top').value);
-  const bot      = parseFloat(document.getElementById('in-bot').value);
-  const chartTop = parseFloat(document.getElementById('in-chart-top').value) || parseFloat(document.getElementById('in-chart-top').placeholder);
-  const chartBot = parseFloat(document.getElementById('in-chart-bot').value) || parseFloat(document.getElementById('in-chart-bot').placeholder);
-
-  if (!top || !bot || !chartTop || !chartBot) {
-    flashBtn(); return;
+function autoSpike(bks,mid){
+  const all=bks.map(b=>parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent));
+  const avg=all.reduce((a,b)=>a+b,0)/all.length;
+  const spike=bks.find(b=>{const p=parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent);return p>avg*4&&p>1.5});
+  if(spike&&!pending){
+    const px=parseFloat(spike.price),pip=isJPY()?0.01:0.0001;
+    pending={top:(px+pip*5).toFixed(dp()),bot:(px-pip*5).toFixed(dp()),type:px>mid?'ask':'bid',pct:(parseFloat(spike.longCountPercent)+parseFloat(spike.shortCountPercent)).toFixed(2)};
+    showAlert(pending);
   }
-  const realTop = Math.max(top, bot);
-  const realBot = Math.min(top, bot);
-
-  zones.push({ id: Date.now(), top: realTop, bot: realBot, chartTop, chartBot, type: zoneType, pair: currentPair });
-  drawZones();
-  renderZoneList();
 }
 
-function flashBtn() {
-  const b = document.getElementById('print-btn');
-  b.style.borderColor = 'var(--ask)'; b.style.color = 'var(--ask)';
-  b.textContent = '⚠ ENTER PRICE + CHART RANGE';
-  setTimeout(() => { b.style.borderColor=''; b.style.color=''; b.textContent='⊕ PRINT ZONE'; }, 1400);
+function showAlert(z){
+  const el=document.getElementById('aalert');
+  document.getElementById('aapx').textContent=z.top+' — '+z.bot;
+  document.getElementById('aadet').textContent=z.type.toUpperCase()+' POOL · '+z.pct+'% · '+PAIR.replace('_','/');
+  el.style.borderColor=z.type==='bid'?'#00e896':'#ff3d6b';
+  el.style.display='block';
+}
+function confirmAuto(){if(!pending)return;document.getElementById('itop').value=pending.top;document.getElementById('ibot').value=pending.bot;setType(pending.type);dismissAuto();printZone()}
+function dismissAuto(){document.getElementById('aalert').style.display='none';pending=null}
+
+async function doAuto(){document.getElementById('abtn').textContent='⚡ SCANNING...';await fetchBook();setTimeout(()=>document.getElementById('abtn').textContent='⚡ SCAN ORDER BOOK',2000)}
+
+function toggleBook(){
+  const wrap=document.getElementById('book-wrap');
+  const tog=document.getElementById('book-toggle');
+  const showing=wrap.classList.toggle('show');
+  tog.classList.toggle('open',showing);
 }
 
-// ═══ DRAW ZONES ══════════════════════════════════════════════════
-function drawZones() {
-  const svg = document.getElementById('canvas');
-  svg.innerHTML = '';
-  const W = window.innerWidth, H = window.innerHeight;
+function changePair(p){PAIR=p;pending=null;fetchPrice();fetchBook()}
 
-  zones.forEach(z => {
-    const range = z.chartTop - z.chartBot;
-    if (range <= 0) return;
-    const yT = ((z.chartTop - z.top) / range) * H;
-    const yB = ((z.chartTop - z.bot) / range) * H;
-    const h  = Math.max(yB - yT, 2);
+function setType(t){
+  ZT=t;
+  document.getElementById('btnb').className='tbtn bid'+(t==='bid'?' on':'');
+  document.getElementById('btna').className='tbtn ask'+(t==='ask'?' on':'');
+}
 
-    const bid = z.type === 'bid';
-    const col = bid ? '#00e896' : '#ff3d6b';
-    const fillA = bid ? 'rgba(0,232,150,0.1)' : 'rgba(255,61,107,0.1)';
-    const strokeA = bid ? 'rgba(0,232,150,0.55)' : 'rgba(255,61,107,0.55)';
+function printZone(){
+  const top=parseFloat(document.getElementById('itop').value);
+  const bot=parseFloat(document.getElementById('ibot').value);
+  const ct=parseFloat(document.getElementById('ict').value)||parseFloat(document.getElementById('ict').placeholder);
+  const cb=parseFloat(document.getElementById('icb').value)||parseFloat(document.getElementById('icb').placeholder);
+  if(!top||!bot||!ct||!cb){
+    const b=document.getElementById('pbtn');
+    b.textContent='⚠ FILL ALL FIELDS';
+    setTimeout(()=>b.textContent='⊕ PRINT ZONE',1400);
+    return;
+  }
+  zones.push({id:Date.now(),top:Math.max(top,bot),bot:Math.min(top,bot),ct,cb,type:ZT,pair:PAIR});
+  drawZones();renderList();
+}
 
-    // gradient fill
-    const gId = `g${z.id}`;
-    const grad = document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
-    grad.setAttribute('id', gId); grad.setAttribute('x1','0'); grad.setAttribute('x2','1');
-    grad.setAttribute('y1','0'); grad.setAttribute('y2','0');
-    const s1 = document.createElementNS('http://www.w3.org/2000/svg','stop');
-    s1.setAttribute('offset','0%'); s1.setAttribute('stop-color', col); s1.setAttribute('stop-opacity','0.18');
-    const s2 = document.createElementNS('http://www.w3.org/2000/svg','stop');
-    s2.setAttribute('offset','100%'); s2.setAttribute('stop-color', col); s2.setAttribute('stop-opacity','0.04');
-    grad.appendChild(s1); grad.appendChild(s2);
-    const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
-    defs.appendChild(grad); svg.appendChild(defs);
+function drawZones(){
+  const svg=document.getElementById('canvas');svg.innerHTML='';
+  const W=window.innerWidth,H=window.innerHeight;
+  zones.forEach(z=>{
+    const rng=z.ct-z.cb;if(rng<=0)return;
+    const yT=((z.ct-z.top)/rng)*H;
+    const yB=((z.ct-z.bot)/rng)*H;
+    const h=Math.max(yB-yT,2);
+    const bid=z.type==='bid';
+    const col=bid?'#00e896':'#ff3d6b';
+    const fillA=bid?'0.11':'0.11';
+    const fill=bid?`rgba(0,232,150,${fillA})`:`rgba(255,61,107,${fillA})`;
+    const stroke=bid?'rgba(0,232,150,0.6)':'rgba(255,61,107,0.6)';
+    const d=dp(z.pair);
 
-    // rect
-    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x','0'); rect.setAttribute('y', yT);
-    rect.setAttribute('width', W); rect.setAttribute('height', h);
-    rect.setAttribute('fill', `url(#${gId})`);
-    svg.appendChild(rect);
+    // gradient
+    const gid='g'+z.id;
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('x1','0');grad.setAttribute('x2','1');
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    s1.setAttribute('offset','0%');s1.setAttribute('stop-color',col);s1.setAttribute('stop-opacity','0.18');
+    const s2=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    s2.setAttribute('offset','100%');s2.setAttribute('stop-color',col);s2.setAttribute('stop-opacity','0.04');
+    grad.appendChild(s1);grad.appendChild(s2);defs.appendChild(grad);svg.appendChild(defs);
 
-    // borders
-    [[yT,'top'],[yB,'bot']].forEach(([y]) => {
-      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-      line.setAttribute('x1','0'); line.setAttribute('x2', W);
-      line.setAttribute('y1', y); line.setAttribute('y2', y);
-      line.setAttribute('stroke', strokeA); line.setAttribute('stroke-width','1.5');
-      line.setAttribute('stroke-dasharray','8 5');
-      svg.appendChild(line);
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',0);rect.setAttribute('y',yT);rect.setAttribute('width',W);rect.setAttribute('height',h);
+    rect.setAttribute('fill',`url(#${gid})`);svg.appendChild(rect);
+
+    [yT,yB].forEach(y=>{
+      const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',0);l.setAttribute('x2',W);l.setAttribute('y1',y);l.setAttribute('y2',y);
+      l.setAttribute('stroke',stroke);l.setAttribute('stroke-width','1.5');l.setAttribute('stroke-dasharray','8 5');
+      svg.appendChild(l);
     });
 
-    // mid line
-    const midY = (yT + yB) / 2;
-    const midL = document.createElementNS('http://www.w3.org/2000/svg','line');
-    midL.setAttribute('x1','0'); midL.setAttribute('x2', W);
-    midL.setAttribute('y1', midY); midL.setAttribute('y2', midY);
-    midL.setAttribute('stroke', col); midL.setAttribute('stroke-width','0.5');
-    midL.setAttribute('stroke-dasharray','2 10'); midL.setAttribute('opacity','0.35');
-    svg.appendChild(midL);
-
-    // label pill
-    const lx = 12, lw = 190, lh = 22;
-    const pill = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    pill.setAttribute('x', lx - 4); pill.setAttribute('y', midY - lh/2);
-    pill.setAttribute('width', lw); pill.setAttribute('height', lh);
-    pill.setAttribute('rx','4');
-    pill.setAttribute('fill', bid ? 'rgba(0,232,150,0.12)' : 'rgba(255,61,107,0.12)');
-    pill.setAttribute('stroke', strokeA); pill.setAttribute('stroke-width','0.8');
+    const midY=(yT+yB)/2;
+    const pill=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    pill.setAttribute('x',10);pill.setAttribute('y',midY-11);pill.setAttribute('width',195);pill.setAttribute('height',22);pill.setAttribute('rx',4);
+    pill.setAttribute('fill',bid?'rgba(0,232,150,0.12)':'rgba(255,61,107,0.12)');pill.setAttribute('stroke',stroke);pill.setAttribute('stroke-width','0.8');
     svg.appendChild(pill);
 
-    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x', lx); txt.setAttribute('y', midY + 4);
-    txt.setAttribute('fill', col);
-    txt.setAttribute('font-family','Share Tech Mono, monospace');
-    txt.setAttribute('font-size','10');
-    txt.setAttribute('letter-spacing','1');
-    const dec = z.pair.includes('JPY') ? 3 : 5;
-    txt.textContent = `${bid ? '▲ BID' : '▼ ASK'} ${z.pair.replace('_','/')}  ${z.top.toFixed(dec)} – ${z.bot.toFixed(dec)}`;
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',16);txt.setAttribute('y',midY+4);txt.setAttribute('fill',col);
+    txt.setAttribute('font-family','Share Tech Mono,monospace');txt.setAttribute('font-size','10');txt.setAttribute('letter-spacing','1');
+    txt.textContent=(bid?'▲ BID':'▼ ASK')+' '+z.pair.replace('_','/')+' '+z.top.toFixed(d)+' – '+z.bot.toFixed(d);
     svg.appendChild(txt);
   });
 }
 
-// ═══ ZONE LIST ════════════════════════════════════════════════════
-function renderZoneList() {
-  const list = document.getElementById('zone-list');
-  if (!zones.length) { list.innerHTML = '<div style="font-family:Share Tech Mono,monospace;font-size:9px;color:var(--dim);text-align:center;padding:8px">No zones printed yet</div>'; return; }
-  list.innerHTML = zones.map(z => {
-    const dec = z.pair.includes('JPY') ? 3 : 5;
-    return `<div class="zone-item ${z.type}">
-      <span>${z.type === 'bid' ? '▲' : '▼'} ${z.pair.replace('_','/')} ${z.top.toFixed(dec)}</span>
-      <span class="zone-del" onclick="removeZone(${z.id})">✕</span>
-    </div>`;
-  }).join('');
+function renderList(){
+  const l=document.getElementById('zlist');
+  if(!zones.length){l.innerHTML='<div style="font-size:9px;color:#3a5a6a;padding:5px 0;font-family:Share Tech Mono,monospace">No zones printed yet</div>';return}
+  l.innerHTML=zones.map(z=>`<div class="zi ${z.type}"><span>${z.type==='bid'?'▲':'▼'} ${z.pair.replace('_','/')} ${z.top.toFixed(dp(z.pair))}</span><button class="zdel" onclick="delZone(${z.id})">×</button></div>`).join('');
+}
+function delZone(id){zones=zones.filter(z=>z.id!==id);drawZones();renderList()}
+function clearAll(){zones=[];drawZones();renderList()}
+
+// ── RING POSITIONING ──────────────────────────────────────
+function posRing(){
+  ringEl.style.left=rX+'px';
+  ringEl.style.top=rY+'px';
+  ringEl.style.transform='translate(-50%,-50%)';
 }
 
-function removeZone(id) {
-  zones = zones.filter(z => z.id !== id);
-  drawZones(); renderZoneList();
+function svgScale(){return ringEl.getBoundingClientRect().width/180}
+
+// sync arrow positions → price inputs
+function syncFromRing(){
+  const ct=parseFloat(document.getElementById('ict').value)||parseFloat(document.getElementById('ict').placeholder);
+  const cb=parseFloat(document.getElementById('icb').value)||parseFloat(document.getElementById('icb').placeholder);
+  if(!ct||!cb)return;
+  const sc=svgScale();
+  const H=window.innerHeight,rng=ct-cb,d=dp();
+  // viewport Y of each arrow tip
+  const rTipY=rY+redSVG*sc;
+  const gTipY=rY+grnSVG*sc;
+  const rP=ct-(rTipY/H)*rng;
+  const gP=ct-(gTipY/H)*rng;
+  document.getElementById('itop').value=rP.toFixed(d);
+  document.getElementById('ibot').value=gP.toFixed(d);
+  document.getElementById('rtx').textContent=rP.toFixed(d);
+  document.getElementById('gtx').textContent=gP.toFixed(d);
 }
 
-function clearAll() {
-  zones = []; drawZones(); renderZoneList();
+// update SVG handle positions
+function updateHandles(){
+  // RED (top) - extends upward (negative SVG y)
+  document.getElementById('rcirc').setAttribute('cy', redSVG+12);
+  document.getElementById('rline').setAttribute('y1', redSVG+20);
+  document.getElementById('rline').setAttribute('y2', redSVG+2);
+  // arrowhead above line
+  const ra=redSVG-10;
+  document.getElementById('rpoly').setAttribute('points',`0,${ra} -9,${ra+14} 9,${ra+14}`);
+  document.getElementById('rtx').setAttribute('y',ra-8);
+
+  // GREEN (bottom) - extends downward (positive SVG y)
+  document.getElementById('gcirc').setAttribute('cy', grnSVG-12);
+  document.getElementById('gline').setAttribute('y1', grnSVG-20);
+  document.getElementById('gline').setAttribute('y2', grnSVG-2);
+  const ga=grnSVG+10;
+  document.getElementById('gpoly').setAttribute('points',`0,${ga} -9,${ga-14} 9,${ga-14}`);
+  document.getElementById('gtx').setAttribute('y',ga+14);
 }
 
-// ═══ RING TOOL ════════════════════════════════════════════════════
-const ringEl = document.getElementById('ring-tool');
-
-function positionRing() {
-  ringEl.style.left = ringX + 'px';
-  ringEl.style.top  = ringY + 'px';
-  ringEl.style.transform = 'translate(-50%, -50%)';
+// ── DRAG HANDLING ─────────────────────────────────────────
+function evPos(e){
+  const t=e.touches?e.touches[0]:e;
+  return{x:t.clientX,y:t.clientY};
 }
 
-function getRingScale() {
-  return ringEl.getBoundingClientRect().width / 180;
-}
-
-// Mouse events
-ringEl.addEventListener('mousedown', e => {
-  if (e.target.closest('#h-red') || e.target.closest('#h-green')) return;
-  draggingRing = true;
-  dragStartX = e.clientX; dragStartY = e.clientY;
-  ringStartX = ringX; ringStartY = ringY;
-  e.preventDefault();
-});
-
-document.getElementById('h-red').addEventListener('mousedown', e => {
-  draggingHandle = 'red'; handleStartY = e.clientY; e.stopPropagation();
-});
-document.getElementById('h-green').addEventListener('mousedown', e => {
-  draggingHandle = 'green'; handleStartY = e.clientY; e.stopPropagation();
-});
-
-document.addEventListener('mousemove', e => {
-  if (draggingRing) {
-    ringX = ringStartX + (e.clientX - dragStartX);
-    ringY = ringStartY + (e.clientY - dragStartY);
-    positionRing(); syncPricesFromRing();
+// Ring body drag
+ringEl.addEventListener('mousedown',e=>{
+  if(e.target.closest('#hr')||e.target.closest('#hg')){
+    dH=e.target.closest('#hr')?'r':'g';
+    dHY=evPos(e).y;e.stopPropagation();return;
   }
-  if (draggingHandle) {
-    const scale = getRingScale();
-    const dy = (e.clientY - handleStartY) / scale;
-    if (draggingHandle === 'red') {
-      redOffY = Math.max(-78, Math.min(-8, redOffY + dy));
-      handleStartY = e.clientY;
-      updateHandleRed();
-    } else {
-      greenOffY = Math.max(8, Math.min(78, greenOffY + dy));
-      handleStartY = e.clientY;
-      updateHandleGreen();
+  dRing=true;const p=evPos(e);dOX=p.x-rX;dOY=p.y-rY;e.preventDefault();
+},{passive:false});
+
+ringEl.addEventListener('touchstart',e=>{
+  if(e.target.closest('#hr')||e.target.closest('#hg')){
+    dH=e.target.closest('#hr')?'r':'g';
+    dHY=evPos(e).y;e.stopPropagation();return;
+  }
+  dRing=true;const p=evPos(e);dOX=p.x-rX;dOY=p.y-rY;e.preventDefault();
+},{passive:false});
+
+function onMove(e){
+  const p=evPos(e);
+  if(dRing){
+    rX=p.x-dOX;rY=p.y-dOY;
+    posRing();syncFromRing();
+    if(e.cancelable)e.preventDefault();
+  }
+  if(dH){
+    const sc=svgScale();
+    const dy=(p.y-dHY)/sc;
+    if(dH==='r'){
+      // red moves up (more negative), allow large range
+      redSVG=Math.max(-200,Math.min(-5,redSVG+dy));
+    }else{
+      grnSVG=Math.max(5,Math.min(200,grnSVG+dy));
     }
-    syncPricesFromRing();
+    dHY=p.y;
+    updateHandles();syncFromRing();
+    if(e.cancelable)e.preventDefault();
   }
+}
+
+document.addEventListener('mousemove',onMove);
+document.addEventListener('touchmove',onMove,{passive:false});
+document.addEventListener('mouseup',()=>{dRing=false;dH=null});
+document.addEventListener('touchend',()=>{dRing=false;dH=null});
+
+// Panel drag
+document.getElementById('ph').addEventListener('mousedown',e=>{
+  panD=true;const r=panelEl.getBoundingClientRect();pdx=e.clientX-r.left;pdy=e.clientY-r.top;e.preventDefault();
 });
+document.getElementById('ph').addEventListener('touchstart',e=>{
+  panD=true;const t=e.touches[0],r=panelEl.getBoundingClientRect();pdx=t.clientX-r.left;pdy=t.clientY-r.top;
+},{passive:true});
+document.addEventListener('mousemove',e=>{if(!panD)return;panelEl.style.right='auto';panelEl.style.left=(e.clientX-pdx)+'px';panelEl.style.top=(e.clientY-pdy)+'px'});
+document.addEventListener('touchmove',e=>{if(!panD)return;const t=e.touches[0];panelEl.style.right='auto';panelEl.style.left=(t.clientX-pdx)+'px';panelEl.style.top=(t.clientY-pdy)+'px'},{passive:true});
+document.addEventListener('mouseup',()=>panD=false);
+document.addEventListener('touchend',()=>panD=false);
 
-document.addEventListener('mouseup', () => { draggingRing = false; draggingHandle = null; });
-
-// Touch events
-ringEl.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  if (e.target.closest('#h-red') || e.target.closest('#h-green')) return;
-  draggingRing = true;
-  dragStartX = t.clientX; dragStartY = t.clientY;
-  ringStartX = ringX; ringStartY = ringY;
-  e.preventDefault();
-}, { passive: false });
-
-document.getElementById('h-red').addEventListener('touchstart', e => {
-  draggingHandle = 'red'; handleStartY = e.touches[0].clientY; e.stopPropagation();
-}, { passive: false });
-document.getElementById('h-green').addEventListener('touchstart', e => {
-  draggingHandle = 'green'; handleStartY = e.touches[0].clientY; e.stopPropagation();
-}, { passive: false });
-
-document.addEventListener('touchmove', e => {
-  const t = e.touches[0];
-  if (draggingRing) {
-    ringX = ringStartX + (t.clientX - dragStartX);
-    ringY = ringStartY + (t.clientY - dragStartY);
-    positionRing(); syncPricesFromRing();
-    e.preventDefault();
-  }
-  if (draggingHandle) {
-    const scale = getRingScale();
-    const dy = (t.clientY - handleStartY) / scale;
-    if (draggingHandle === 'red') {
-      redOffY = Math.max(-78, Math.min(-8, redOffY + dy));
-    } else {
-      greenOffY = Math.max(8, Math.min(78, greenOffY + dy));
-    }
-    handleStartY = t.clientY;
-    updateHandleRed(); updateHandleGreen();
-    syncPricesFromRing();
-    e.preventDefault();
-  }
-}, { passive: false });
-
-document.addEventListener('touchend', () => { draggingRing = false; draggingHandle = null; });
-
-function updateHandleRed() {
-  document.getElementById('rl').setAttribute('y2', redOffY + 18);
-  document.getElementById('rp').setAttribute('points', `0,${redOffY} -8,${redOffY+14} 8,${redOffY+14}`);
-  document.getElementById('red-price-label').setAttribute('y', redOffY - 6);
-}
-
-function updateHandleGreen() {
-  document.getElementById('gl').setAttribute('y2', greenOffY - 18);
-  document.getElementById('gp').setAttribute('points', `0,${greenOffY} -8,${greenOffY-14} 8,${greenOffY-14}`);
-  document.getElementById('green-price-label').setAttribute('y', greenOffY + 14);
-}
-
-function syncPricesFromRing() {
-  const chartTop = parseFloat(document.getElementById('in-chart-top').value) || parseFloat(document.getElementById('in-chart-top').placeholder);
-  const chartBot = parseFloat(document.getElementById('in-chart-bot').value) || parseFloat(document.getElementById('in-chart-bot').placeholder);
-  if (!chartTop || !chartBot) return;
-
-  const scale = getRingScale();
-  const H = window.innerHeight;
-  const range = chartTop - chartBot;
-  const dec = currentPair.includes('JPY') ? 3 : 5;
-
-  const redTipY   = ringY + redOffY   * scale;
-  const greenTipY = ringY + greenOffY * scale;
-
-  const redPrice   = chartTop - (redTipY   / H) * range;
-  const greenPrice = chartTop - (greenTipY / H) * range;
-
-  document.getElementById('in-top').value = redPrice.toFixed(dec);
-  document.getElementById('in-bot').value = greenPrice.toFixed(dec);
-
-  // update labels on ring
-  document.getElementById('red-price-label').textContent   = redPrice.toFixed(dec);
-  document.getElementById('green-price-label').textContent = greenPrice.toFixed(dec);
-}
-
-// ═══ PANEL DRAG ══════════════════════════════════════════════════
-let panelDragging = false, pdx = 0, pdy = 0;
-const panelEl = document.getElementById('panel');
-
-document.getElementById('panel-header').addEventListener('mousedown', e => {
-  panelDragging = true;
-  const r = panelEl.getBoundingClientRect();
-  pdx = e.clientX - r.left; pdy = e.clientY - r.top;
-  e.preventDefault();
-});
-document.getElementById('panel-header').addEventListener('touchstart', e => {
-  panelDragging = true;
-  const t = e.touches[0], r = panelEl.getBoundingClientRect();
-  pdx = t.clientX - r.left; pdy = t.clientY - r.top;
-}, { passive: true });
-
-document.addEventListener('mousemove', e => {
-  if (!panelDragging) return;
-  panelEl.style.right = 'auto';
-  panelEl.style.left = (e.clientX - pdx) + 'px';
-  panelEl.style.top  = (e.clientY - pdy) + 'px';
-});
-document.addEventListener('touchmove', e => {
-  if (!panelDragging) return;
-  const t = e.touches[0];
-  panelEl.style.right = 'auto';
-  panelEl.style.left = (t.clientX - pdx) + 'px';
-  panelEl.style.top  = (t.clientY - pdy) + 'px';
-}, { passive: true });
-
-document.addEventListener('mouseup',  () => { panelDragging = false; });
-document.addEventListener('touchend', () => { panelDragging = false; });
-
-// ═══ MOBILE TOOLBAR ══════════════════════════════════════════════
-function tbTab(tab) {
-  document.querySelectorAll('.tb-btn').forEach((b,i) => b.classList.toggle('active', ['ring','zones','book','auto'][i] === tab));
-  if (tab === 'auto') autoDetect();
-  if (tab === 'ring') {
-    panelEl.style.display = 'block';
-    ringEl.style.display = 'block';
-  }
-}
-
-// ═══ RESIZE ══════════════════════════════════════════════════════
-window.addEventListener('resize', drawZones);
-
-// ═══ INIT ════════════════════════════════════════════════════════
-renderZoneList();
+['ict','icb'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{document.getElementById(id).dataset.t='1';syncFromRing()}));
+window.addEventListener('resize',drawZones);
+renderList();
 </script>
 </body>
 </html>
