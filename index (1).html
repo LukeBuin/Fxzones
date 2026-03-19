@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FX Dark Pool Zones</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;touch-action:none;font-family:'Oxanium',sans-serif}
+
+#canvas-zones{position:fixed;inset:0;pointer-events:none;z-index:90}
+#canvas-live{position:fixed;inset:0;pointer-events:none;z-index:95}
+
+/* SETUP */
+#setup{position:fixed;inset:0;background:rgba(6,9,14,0.97);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.scard{background:#0d1420;border:1px solid rgba(0,200,255,0.2);border-radius:12px;padding:20px;width:100%;max-width:360px}
+.scard h2{font-size:14px;letter-spacing:2px;color:#00c8ff;margin-bottom:4px}
+.scard p{font-size:11px;color:#4a6a7a;margin-bottom:12px;line-height:1.6}
+.hint{background:rgba(0,200,255,0.07);border:1px solid rgba(0,200,255,0.15);border-radius:6px;padding:9px 11px;margin-bottom:12px;font-size:10px;color:#00c8ff;line-height:1.8}
+.hint a{color:#00c8ff}
+.scard label{display:block;font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase;margin:10px 0 4px}
+.scard input{width:100%;padding:9px 10px;font-family:'Share Tech Mono',monospace;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#c8d8e8;outline:none}
+.scard input:focus{border-color:rgba(0,200,255,0.4)}
+.erow{display:flex;gap:6px;margin:10px 0}
+.ebtn{flex:1;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;color:#4a6a7a;font-family:'Oxanium',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer}
+.ebtn.on{border-color:#00c8ff;color:#00c8ff;background:rgba(0,200,255,0.1)}
+#cbtn{width:100%;margin-top:12px;padding:11px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#00c8ff;font-family:'Oxanium',sans-serif;font-weight:700;font-size:12px;letter-spacing:3px;cursor:pointer}
+#cbtn:active{transform:scale(0.98)}
+#cstat{font-size:10px;text-align:center;margin-top:8px;min-height:14px;font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+
+/* PANEL - compact */
+#panel{position:fixed;top:12px;right:10px;width:220px;background:rgba(8,12,20,0.93);border:1px solid rgba(0,200,255,0.18);border-radius:10px;z-index:500;display:none;backdrop-filter:blur(12px);touch-action:none}
+#ph{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(0,200,255,0.1);cursor:move;touch-action:none;user-select:none}
+#ph .ptitle{font-size:10px;letter-spacing:2px;color:#00c8ff}
+.sdot{width:6px;height:6px;border-radius:50%;background:#00e896;box-shadow:0 0 6px #00e896;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#pb{padding:10px 12px;max-height:calc(100vh - 60px);overflow-y:auto}
+
+#ticker{background:rgba(0,200,255,0.06);border:1px solid rgba(0,200,255,0.1);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+#psel{width:100%;background:transparent;border:none;color:#00c8ff;font-family:'Oxanium',sans-serif;font-weight:700;font-size:13px;outline:none;cursor:pointer;margin-bottom:4px}
+#psel option{background:#0d1420}
+.prow{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:10px}
+#lb{color:#00e896}#la{color:#ff3d6b}#ls{color:#3a5a6a}
+
+.slbl{font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase;margin:7px 0 4px;display:flex;align-items:center;gap:6px}
+.slbl::after{content:'';flex:1;height:1px;background:rgba(0,200,255,0.08)}
+
+#btog{display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin:5px 0 3px}
+#btog span{font-size:9px;letter-spacing:1.5px;color:#3a5a6a;text-transform:uppercase}
+#btog .arr{font-size:10px;color:#3a5a6a;transition:transform 0.2s}
+#btog.open .arr{transform:rotate(180deg)}
+#bwrap{display:none;margin-bottom:3px}#bwrap.show{display:block}
+.br{display:flex;align-items:center;gap:4px;margin-bottom:2px;font-family:'Share Tech Mono',monospace;font-size:9px}
+.bp{width:60px;color:#8a9aaa}.bw{flex:1;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden}
+.bb{height:100%;border-radius:2px}.bbb{background:#00e896}.bab{background:#ff3d6b}
+.bv{width:32px;text-align:right;color:#3a5a6a}
+
+#val-status{margin:5px 0;padding:6px 10px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;text-align:center;border:1px solid rgba(255,255,255,0.06);color:#3a5a6a;background:rgba(255,255,255,0.02);transition:all 0.3s}
+#val-status.scanning{border-color:rgba(0,200,255,0.3);color:#00c8ff}
+#val-status.confirmed-bid{border-color:rgba(0,232,150,0.5);color:#00e896;background:rgba(0,232,150,0.08)}
+#val-status.confirmed-ask{border-color:rgba(255,61,107,0.5);color:#ff3d6b;background:rgba(255,61,107,0.08)}
+#val-status.weak{border-color:rgba(255,200,0,0.4);color:#ffc800}
+#val-status.none{border-color:rgba(255,61,107,0.2);color:#ff3d6b}
+
+.irow{display:flex;gap:5px;margin-bottom:5px}
+.iw{flex:1}
+.iw label{display:block;font-size:8px;letter-spacing:1px;color:#3a5a6a;text-transform:uppercase;margin-bottom:3px}
+.iw input{width:100%;padding:5px 6px;font-family:'Share Tech Mono',monospace;font-size:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:#c8d8e8;outline:none}
+.iw input:focus{border-color:rgba(0,200,255,.4)}
+
+#zlist{margin-top:4px;max-height:90px;overflow-y:auto}
+.zi{display:flex;align-items:center;justify-content:space-between;padding:4px 6px;margin-bottom:2px;border-radius:4px;border-left:2px solid;font-family:'Share Tech Mono',monospace;font-size:9px}
+.zi.bid{border-color:#00e896;color:#00e896;background:rgba(0,232,150,.07)}
+.zi.ask{border-color:#ff3d6b;color:#ff3d6b;background:rgba(255,61,107,.07)}
+.zdel{color:#3a5a6a;cursor:pointer;background:none;border:none;font-size:12px;padding:0 2px}
+.zdel:hover{color:#ff3d6b}
+#clrbtn{width:100%;margin-top:4px;padding:5px;border:1px solid rgba(255,255,255,.06);border-radius:4px;background:transparent;color:#3a5a6a;font-family:'Oxanium',sans-serif;font-size:9px;letter-spacing:1.5px;cursor:pointer}
+
+/* ═══ RING TOOL ═══════════════════════════════════════════ */
+#ring-tool{position:fixed;z-index:400;display:none;touch-action:none;user-select:none;cursor:grab}
+#ring-tool:active{cursor:grabbing}
+#ring-tool svg{overflow:visible}
+
+/* FREE HANDLES */
+.handle{position:fixed;z-index:450;display:none;touch-action:none;cursor:grab;user-select:none;transform:translate(-50%,-50%)}
+.handle:active{cursor:grabbing}
+.handle svg{overflow:visible}
+
+/* Price labels */
+.hlabel{position:fixed;font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:bold;pointer-events:none;z-index:460;white-space:nowrap;text-shadow:0 0 8px rgba(0,0,0,1),0 1px 3px rgba(0,0,0,0.9)}
+#rlabel{color:#ff3d6b}#glabel{color:#00e896}
+
+/* pip size label on ring */
+#pip-label{position:fixed;font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:bold;pointer-events:none;z-index:460;color:rgba(0,232,150,0.9);text-shadow:0 0 8px rgba(0,0,0,1);white-space:nowrap;background:rgba(0,0,0,0.6);padding:1px 5px;border-radius:8px;border:1px solid rgba(0,232,150,0.4)}
+
+@keyframes flashC{0%{opacity:0;transform:translate(-50%,-50%) scale(0.7)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+#flash{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-family:'Oxanium',sans-serif;font-weight:700;font-size:20px;letter-spacing:3px;pointer-events:none;z-index:9998;display:none;text-align:center;text-shadow:0 0 30px currentColor}
+
+#hint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(200,210,230,0.25);letter-spacing:1px;pointer-events:none;z-index:9999;white-space:nowrap;display:none}
+</style>
+</head>
+<body>
+
+<svg id="canvas-zones" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="canvas-live" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="scard">
+    <h2>FX DARK POOL ZONES</h2>
+    <p>Connect your OANDA account to get live prices and order book validation.</p>
+    <div class="hint">Get your free API key:<br><a href="https://www.oanda.com" target="_blank">oanda.com</a> → My Account → Manage API Access → Generate token</div>
+    <label>OANDA API Key</label>
+    <input type="password" id="akey" placeholder="Paste your API token here">
+    <label>Account ID</label>
+    <input type="text" id="acid" placeholder="e.g. 101-004-38838501-001">
+    <label>Environment</label>
+    <div class="erow">
+      <button class="ebtn on" id="ep" onclick="setEnv('practice')">PRACTICE</button>
+      <button class="ebtn" id="el" onclick="setEnv('live')">LIVE</button>
+    </div>
+    <button id="cbtn" onclick="doConnect()">CONNECT</button>
+    <div id="cstat"></div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <div id="ph"><span class="ptitle">FX ZONES</span><div class="sdot"></div></div>
+  <div id="pb">
+    <div id="ticker">
+      <select id="psel" onchange="changePair(this.value)">
+        <option value="EUR_USD">EUR/USD</option><option value="GBP_USD">GBP/USD</option>
+        <option value="USD_JPY">USD/JPY</option><option value="AUD_USD">AUD/USD</option>
+        <option value="USD_CAD">USD/CAD</option><option value="USD_CHF">USD/CHF</option>
+        <option value="NZD_USD">NZD/USD</option><option value="EUR_GBP">EUR/GBP</option>
+        <option value="EUR_JPY">EUR/JPY</option><option value="GBP_JPY">GBP/JPY</option>
+      </select>
+      <div class="prow"><span id="lb">BID –</span><span id="ls">SPD –</span><span id="la">ASK –</span></div>
+    </div>
+    <div id="btog" onclick="toggleBook()"><span>Order Book</span><span class="arr">▾</span></div>
+    <div id="bwrap"><div id="ar"></div><div style="height:3px"></div><div id="br2"></div></div>
+    <div id="val-status">PLACE ARROWS · PRESS BID OR ASK ON RING</div>
+    <div class="slbl">Chart Visible Range</div>
+    <div class="irow">
+      <div class="iw"><label>Chart Top</label><input id="ict" type="number" step="0.00001" placeholder="Visible high"></div>
+      <div class="iw"><label>Chart Bot</label><input id="icb" type="number" step="0.00001" placeholder="Visible low"></div>
+    </div>
+    <div class="slbl">Active Zones</div>
+    <div id="zlist"></div>
+    <button id="clrbtn" onclick="clearAll()">CLEAR ALL</button>
+  </div>
+</div>
+
+<!-- RING TOOL with buttons built in -->
+<div id="ring-tool">
+  <svg id="ring-svg" width="180" height="180" viewBox="-90 -90 180 180" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <defs>
+      <filter id="fglow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+
+    <!-- outer ring -->
+    <circle r="72" fill="none" stroke="rgba(160,180,220,0.5)" stroke-width="2.5"/>
+    <!-- inner rings -->
+    <circle r="48" fill="none" stroke="rgba(160,180,220,0.1)" stroke-width="1"/>
+    <circle r="24" fill="none" stroke="rgba(160,180,220,0.1)" stroke-width="1"/>
+    <!-- crosshairs -->
+    <line x1="-72" y1="0" x2="72" y2="0" stroke="rgba(160,180,220,0.25)" stroke-width="1"/>
+    <line x1="0" y1="-72" x2="0" y2="72" stroke="rgba(160,180,220,0.25)" stroke-width="1"/>
+    <!-- tick marks -->
+    <line x1="0" y1="-68" x2="0" y2="-76" stroke="rgba(160,180,220,0.4)" stroke-width="1.5"/>
+    <line x1="0" y1="68" x2="0" y2="76" stroke="rgba(160,180,220,0.4)" stroke-width="1.5"/>
+    <line x1="-68" y1="0" x2="-76" y2="0" stroke="rgba(160,180,220,0.4)" stroke-width="1.5"/>
+    <line x1="68" y1="0" x2="76" y2="0" stroke="rgba(160,180,220,0.4)" stroke-width="1.5"/>
+    <!-- center dot -->
+    <circle r="4" fill="rgba(160,180,220,0.5)"/>
+    <circle r="1.8" fill="white"/>
+
+    <!-- ══ BID BUTTON (bottom-left, green) ══ -->
+    <g id="btn-bid" style="cursor:pointer" onclick="pressButton('bid')">
+      <rect x="-72" y="52" width="26" height="22" rx="4"
+        fill="rgba(0,180,80,0.85)" stroke="#00e896" stroke-width="1.5"/>
+      <text x="-59" y="67" text-anchor="middle" font-family="Oxanium,sans-serif" font-weight="700"
+        font-size="9" fill="white" letter-spacing="0.5">BID</text>
+    </g>
+
+    <!-- ══ ASK BUTTON (top-left, red) ══ -->
+    <g id="btn-ask" style="cursor:pointer" onclick="pressButton('ask')">
+      <rect x="-72" y="-74" width="26" height="22" rx="4"
+        fill="rgba(180,30,50,0.85)" stroke="#ff3d6b" stroke-width="1.5"/>
+      <text x="-59" y="-59" text-anchor="middle" font-family="Oxanium,sans-serif" font-weight="700"
+        font-size="9" fill="white" letter-spacing="0.5">ASK</text>
+    </g>
+
+    <!-- ══ CLEAR BUTTON (bottom-right, grey) ══ -->
+    <g id="btn-clr" style="cursor:pointer" onclick="clearLive()">
+      <rect x="46" y="52" width="26" height="22" rx="4"
+        fill="rgba(60,70,90,0.85)" stroke="rgba(160,180,220,0.3)" stroke-width="1.5"/>
+      <text x="59" y="67" text-anchor="middle" font-family="Oxanium,sans-serif" font-weight="700"
+        font-size="9" fill="rgba(200,210,230,0.8)" letter-spacing="0.5">CLR</text>
+    </g>
+
+    <!-- ══ LOCK/PRINT BUTTON (top-right, cyan) ══ -->
+    <g id="btn-lock" style="cursor:pointer" onclick="lockZone()">
+      <rect x="46" y="-74" width="26" height="22" rx="4"
+        fill="rgba(0,100,160,0.85)" stroke="#00c8ff" stroke-width="1.5"/>
+      <text x="59" y="-59" text-anchor="middle" font-family="Oxanium,sans-serif" font-weight="700"
+        font-size="9" fill="white" letter-spacing="0.5">SET</text>
+    </g>
+
+    <!-- pip size display (top center of ring) -->
+    <rect id="pip-bg" x="-22" y="-90" width="44" height="18" rx="9"
+      fill="rgba(0,0,0,0.7)" stroke="rgba(0,232,150,0.5)" stroke-width="1"/>
+    <text id="pip-txt" x="0" y="-77" text-anchor="middle"
+      font-family="Share Tech Mono,monospace" font-size="9" fill="#00e896">0.0p</text>
+  </svg>
+</div>
+
+<!-- Red arrow handle (top of zone) -->
+<div class="handle" id="rhandle">
+  <svg width="50" height="50" viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <defs><filter id="fr"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <circle r="16" fill="rgba(255,61,107,0.2)" stroke="#ff3d6b" stroke-width="2"/>
+    <line x1="0" y1="-16" x2="0" y2="-34" stroke="#ff3d6b" stroke-width="2.5" stroke-linecap="round"/>
+    <polygon points="0,-46 -9,-32 9,-32" fill="#ff3d6b" filter="url(#fr)"/>
+    <circle r="3.5" fill="#ff3d6b"/>
+  </svg>
+</div>
+
+<!-- Green arrow handle (bottom of zone) -->
+<div class="handle" id="ghandle">
+  <svg width="50" height="50" viewBox="-25 -25 50 50" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+    <defs><filter id="fg"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <circle r="16" fill="rgba(0,232,150,0.2)" stroke="#00e896" stroke-width="2"/>
+    <line x1="0" y1="16" x2="0" y2="34" stroke="#00e896" stroke-width="2.5" stroke-linecap="round"/>
+    <polygon points="0,46 -9,32 9,32" fill="#00e896" filter="url(#fg)"/>
+    <circle r="3.5" fill="#00e896"/>
+  </svg>
+</div>
+
+<div class="hlabel" id="rlabel"></div>
+<div class="hlabel" id="glabel"></div>
+<div id="flash"></div>
+<div id="hint">DRAG RING · RED ARROW = TOP WICK · GREEN ARROW = BOTTOM WICK · PRESS BID or ASK</div>
+
+<script>
+let ENV='practice', PAIR='EUR_USD';
+let zones=[], AK='', AID='';
+let lastBuckets=[], lastMid=0;
+let ringX, ringY, redX, redY, grnX, grnY;
+let dragging=null, dOX=0, dOY=0, panDX=0, panDY=0;
+let valTimer=null, currentVal=null, currentEntryPrice=null;
+let pendingType=null; // 'bid' or 'ask' — set when button pressed
+
+const ringEl=document.getElementById('ring-tool');
+const redH=document.getElementById('rhandle');
+const grnH=document.getElementById('ghandle');
+const rLbl=document.getElementById('rlabel');
+const gLbl=document.getElementById('glabel');
+const panelEl=document.getElementById('panel');
+const svgZ=document.getElementById('canvas-zones');
+const svgL=document.getElementById('canvas-live');
+
+function isJPY(p){return(p||PAIR).includes('JPY')}
+function dp(p){return isJPY(p)?3:5}
+function pipSize(p){return isJPY(p)?0.01:0.0001}
+function oBase(){return`https://api-${ENV==='practice'?'fxpractice':'fxtrade'}.oanda.com`}
+function oHdr(){return{'Authorization':'Bearer '+AK}}
+
+function setEnv(e){ENV=e;document.getElementById('ep').classList.toggle('on',e==='practice');document.getElementById('el').classList.toggle('on',e==='live')}
+function stat(m,c){const s=document.getElementById('cstat');s.textContent=m;s.style.color=c||'#4a6a7a'}
+
+async function doConnect(){
+  AK=document.getElementById('akey').value.trim();
+  AID=document.getElementById('acid').value.trim();
+  if(!AK||!AID){stat('Enter API key and account ID','#ff3d6b');return}
+  stat('Connecting...','#4a6a7a');
+  try{
+    const r=await fetch(`${oBase()}/v3/accounts/${AID}`,{headers:oHdr()});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    stat('✓ Connected: '+(d.account?.alias||AID),'#00e896');
+    setTimeout(()=>{
+      document.getElementById('setup').style.display='none';
+      document.getElementById('hint').style.display='block';
+      panelEl.style.display='block';
+      const W=window.innerWidth, H=window.innerHeight;
+      ringX=W*0.28; ringY=H*0.45;
+      redX=ringX; redY=ringY-120;
+      grnX=ringX; grnY=ringY+120;
+      [ringEl,redH,grnH].forEach(e=>e.style.display='block');
+      posAll(); startPoll();
+    },700);
+  }catch(e){stat('✗ '+e.message,'#ff3d6b')}
+}
+
+function startPoll(){fetchPrice();fetchBook();setInterval(fetchPrice,3000);setInterval(fetchBook,6000)}
+
+async function fetchPrice(){
+  try{
+    const r=await fetch(`${oBase()}/v3/accounts/${AID}/pricing?instruments=${PAIR}`,{headers:oHdr()});
+    const d=await r.json(); const p=d.prices?.[0]; if(!p)return;
+    const bid=parseFloat(p.bids?.[0]?.price||0), ask=parseFloat(p.asks?.[0]?.price||0);
+    const spd=((ask-bid)*(isJPY()?100:10000)).toFixed(1);
+    document.getElementById('lb').textContent='B '+bid.toFixed(dp());
+    document.getElementById('la').textContent='A '+ask.toFixed(dp());
+    document.getElementById('ls').textContent=spd+'p';
+    const pip=pipSize();
+    const ict=document.getElementById('ict'),icb=document.getElementById('icb');
+    if(!ict.dataset.t)ict.placeholder=(ask+pip*40).toFixed(dp());
+    if(!icb.dataset.t)icb.placeholder=(bid-pip*40).toFixed(dp());
+    syncPrices();
+  }catch(e){}
+}
+
+async function fetchBook(){
+  try{
+    const r=await fetch(`${oBase()}/v3/instruments/${PAIR}/orderBook`,{headers:oHdr()});
+    const d=await r.json(); const bks=d.orderBook?.buckets||[]; if(!bks.length)return;
+    lastMid=parseFloat(d.orderBook?.price||0);
+    lastBuckets=bks;
+    renderBook('ar',bks.filter(b=>parseFloat(b.price)>lastMid).slice(-4).reverse(),'bab');
+    renderBook('br2',bks.filter(b=>parseFloat(b.price)<=lastMid).slice(-4),'bbb');
+    if(pendingType)validateAndDraw(pendingType);
+  }catch(e){}
+}
+
+function renderBook(id,bks,cls){
+  const c=document.getElementById(id); if(!bks.length){c.innerHTML='';return}
+  const mx=Math.max(...bks.map(b=>parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent)));
+  c.innerHTML=bks.map(b=>{const p=parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent);const w=mx>0?((p/mx)*100).toFixed(0):0;return`<div class="br"><span class="bp">${parseFloat(b.price).toFixed(dp())}</span><div class="bw"><div class="bb ${cls}" style="width:${w}%"></div></div><span class="bv">${p.toFixed(1)}%</span></div>`}).join('');
+}
+
+// ── BUTTON PRESS ON RING ───────────────────────────────────
+function pressButton(type){
+  pendingType=type;
+  const vs=document.getElementById('val-status');
+  vs.className='scanning'; vs.textContent='⚡ SCANNING ORDER BOOK...';
+  highlightRingButton(type);
+  if(lastBuckets.length){
+    validateAndDraw(type);
+  }else{
+    fetchBook();
+  }
+}
+
+function highlightRingButton(type){
+  // pulse the pressed button
+  const el=document.getElementById('btn-'+type);
+  if(!el)return;
+  const rect=el.querySelector('rect');
+  const origFill=rect.getAttribute('fill');
+  rect.setAttribute('fill',type==='bid'?'rgba(0,232,150,0.95)':'rgba(255,61,107,0.95)');
+  setTimeout(()=>rect.setAttribute('fill',origFill),400);
+}
+
+// ── VALIDATE AGAINST ORDER BOOK + CALCULATE ENTRY LINE ────
+function validateAndDraw(type){
+  const prices=getCurrentPrices();
+  if(!prices)return;
+  const {top,bot}=prices;
+  const vs=document.getElementById('val-status');
+
+  // find buckets in range
+  const lo=Math.min(top,bot), hi=Math.max(top,bot);
+  const inRange=lastBuckets.filter(b=>{const px=parseFloat(b.price);return px>=lo&&px<=hi});
+
+  if(!inRange.length){
+    vs.className='none'; vs.textContent='✗ NO CLUSTER IN RANGE';
+    currentVal=null; currentEntryPrice=null; updateLive(); return;
+  }
+
+  const allPct=lastBuckets.map(b=>parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent));
+  const globalAvg=allPct.reduce((a,b)=>a+b,0)/allPct.length;
+  const avgIn=inRange.reduce((a,b)=>a+(parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent)),0)/inRange.length;
+
+  // find strongest bucket — this becomes the entry line
+  const strongest=inRange.reduce((a,b)=>{
+    const pa=parseFloat(a.longCountPercent)+parseFloat(a.shortCountPercent);
+    const pb=parseFloat(b.longCountPercent)+parseFloat(b.shortCountPercent);
+    return pb>pa?b:a;
+  });
+  const entryPx=parseFloat(strongest.price);
+  const strongPct=(parseFloat(strongest.longCountPercent)+parseFloat(strongest.shortCountPercent)).toFixed(1);
+
+  if(avgIn>globalAvg*2.5){
+    currentVal=type;
+    currentEntryPrice=entryPx;
+    vs.className='confirmed-'+type;
+    vs.textContent=`✓ DARK ${type==='bid'?'BIDS':'OFFERS'} ${strongPct}%`;
+    showFlash(type);
+  }else if(avgIn>globalAvg*1.3){
+    currentVal='weak';
+    currentEntryPrice=entryPx;
+    vs.className='weak';
+    vs.textContent=`⚠ WEAK ${type==='bid'?'BID':'ASK'} ${strongPct}% CLUSTER`;
+  }else{
+    currentVal=null; currentEntryPrice=null;
+    vs.className='none'; vs.textContent='✗ NO SIGNIFICANT POOL HERE';
+  }
+  updateLive();
+}
+
+function showFlash(type){
+  const el=document.getElementById('flash');
+  const msg=type==='bid'?'DARK BIDS CONFIRMED':'DARK OFFERS CONFIRMED';
+  const col=type==='bid'?'#00e896':'#ff3d6b';
+  el.textContent=msg; el.style.color=col; el.style.display='block';
+  el.style.animation='flashC 1.4s ease forwards';
+  setTimeout(()=>{el.style.display='none';el.style.animation=''},1500);
+}
+
+// ── GET CURRENT PRICES FROM ARROWS ────────────────────────
+function getCurrentPrices(){
+  const ct=parseFloat(document.getElementById('ict').value)||parseFloat(document.getElementById('ict').placeholder);
+  const cb=parseFloat(document.getElementById('icb').value)||parseFloat(document.getElementById('icb').placeholder);
+  if(!ct||!cb)return null;
+  const H=window.innerHeight, rng=ct-cb;
+  const rP=ct-(redY/H)*rng;
+  const gP=ct-(grnY/H)*rng;
+  return{top:Math.max(rP,gP), bot:Math.min(rP,gP), ct, cb};
+}
+
+// ── SYNC PRICES + PIP DISPLAY ─────────────────────────────
+function syncPrices(){
+  const prices=getCurrentPrices();
+  if(!prices)return;
+  const {top,bot}=prices;
+  const d=dp();
+  rLbl.textContent=(ct=>{const H=window.innerHeight,rng=ct-(parseFloat(document.getElementById('icb').value)||parseFloat(document.getElementById('icb').placeholder));return(ct-(redY/H)*rng).toFixed(d)})(parseFloat(document.getElementById('ict').value)||parseFloat(document.getElementById('ict').placeholder));
+  gLbl.textContent=(ct=>{const H=window.innerHeight,rng=ct-(parseFloat(document.getElementById('icb').value)||parseFloat(document.getElementById('icb').placeholder));return(ct-(grnY/H)*rng).toFixed(d)})(parseFloat(document.getElementById('ict').value)||parseFloat(document.getElementById('ict').placeholder));
+
+  // pip size on ring
+  const pips=((top-bot)/pipSize()).toFixed(1);
+  document.getElementById('pip-txt').textContent=pips+'p';
+
+  clearTimeout(valTimer);
+  valTimer=setTimeout(updateLive,100);
+}
+
+// ── LIVE PREVIEW ──────────────────────────────────────────
+function updateLive(){
+  svgL.innerHTML='';
+  const prices=getCurrentPrices();
+  if(!prices)return;
+  const {top,bot,ct,cb}=prices;
+  const H=window.innerHeight, W=window.innerWidth, rng=ct-cb;
+  const yT=((ct-top)/rng)*H;
+  const yB=((ct-bot)/rng)*H;
+  const h=Math.max(yB-yT,2);
+  const d=dp();
+
+  // determine colour
+  let col, fillOp, label;
+  if(currentVal==='bid'){col='#00e896';fillOp=0.18;label='DARK BIDS'}
+  else if(currentVal==='ask'){col='#ff3d6b';fillOp=0.18;label='DARK OFFERS'}
+  else if(currentVal==='weak'){col='#ffc800';fillOp=0.08;label='WEAK CLUSTER'}
+  else{col='rgba(160,180,220,1)';fillOp=0.05;label=''}
+
+  // main fill
+  const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',0);rect.setAttribute('y',yT);rect.setAttribute('width',W);rect.setAttribute('height',h);
+  rect.setAttribute('fill',col);rect.setAttribute('fill-opacity',fillOp);
+  svgL.appendChild(rect);
+
+  // top border
+  const lT=document.createElementNS('http://www.w3.org/2000/svg','line');
+  lT.setAttribute('x1',0);lT.setAttribute('x2',W);lT.setAttribute('y1',yT);lT.setAttribute('y2',yT);
+  lT.setAttribute('stroke',col);lT.setAttribute('stroke-width',currentVal&&currentVal!=='weak'?'2':'1.5');
+  lT.setAttribute('stroke-opacity','0.8');
+  svgL.appendChild(lT);
+
+  // bottom border
+  const lB=document.createElementNS('http://www.w3.org/2000/svg','line');
+  lB.setAttribute('x1',0);lB.setAttribute('x2',W);lB.setAttribute('y1',yB);lB.setAttribute('y2',yB);
+  lB.setAttribute('stroke',col);lB.setAttribute('stroke-width',currentVal&&currentVal!=='weak'?'2':'1.5');
+  lB.setAttribute('stroke-opacity','0.8');
+  svgL.appendChild(lB);
+
+  // ══ ENTRY LINE (black line ~1/3 from bottom if bid, ~1/3 from top if ask) ══
+  if(currentEntryPrice&&(currentVal==='bid'||currentVal==='ask')){
+    const yEntry=((ct-currentEntryPrice)/rng)*H;
+    // clamp within zone
+    const yClamped=Math.max(yT+2,Math.min(yB-2,yEntry));
+
+    // dark background strip for entry line
+    const strip=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    strip.setAttribute('x',0);strip.setAttribute('y',yClamped-1.5);strip.setAttribute('width',W);strip.setAttribute('height',3);
+    strip.setAttribute('fill','rgba(0,0,0,0.7)');
+    svgL.appendChild(strip);
+
+    // the entry line itself
+    const lE=document.createElementNS('http://www.w3.org/2000/svg','line');
+    lE.setAttribute('x1',0);lE.setAttribute('x2',W);lE.setAttribute('y1',yClamped);lE.setAttribute('y2',yClamped);
+    lE.setAttribute('stroke','#000000');lE.setAttribute('stroke-width','2');lE.setAttribute('stroke-opacity','0.9');
+    svgL.appendChild(lE);
+
+    // entry label
+    const eBg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    eBg.setAttribute('x', W-160);eBg.setAttribute('y',yClamped-9);eBg.setAttribute('width','150');eBg.setAttribute('height','18');eBg.setAttribute('rx','3');
+    eBg.setAttribute('fill','rgba(0,0,0,0.8)');eBg.setAttribute('stroke',col);eBg.setAttribute('stroke-width','0.8');
+    svgL.appendChild(eBg);
+    const eTxt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    eTxt.setAttribute('x',W-154);eTxt.setAttribute('y',yClamped+4);eTxt.setAttribute('fill',col);
+    eTxt.setAttribute('font-family','Share Tech Mono,monospace');eTxt.setAttribute('font-size','9');eTxt.setAttribute('letter-spacing','1');
+    eTxt.textContent='ENTRY '+currentEntryPrice.toFixed(d);
+    svgL.appendChild(eTxt);
+  }
+
+  // zone label (top of zone)
+  if(label){
+    const lbg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    lbg.setAttribute('x',10);lbg.setAttribute('y',yT+4);lbg.setAttribute('width',195);lbg.setAttribute('height',20);lbg.setAttribute('rx',3);
+    lbg.setAttribute('fill',currentVal==='bid'?'rgba(0,100,50,0.7)':currentVal==='ask'?'rgba(100,0,30,0.7)':'rgba(30,30,30,0.5)');
+    svgL.appendChild(lbg);
+    const ltxt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    ltxt.setAttribute('x',16);ltxt.setAttribute('y',yT+18);ltxt.setAttribute('fill',col);
+    ltxt.setAttribute('font-family','Oxanium,sans-serif');ltxt.setAttribute('font-weight','700');ltxt.setAttribute('font-size','11');ltxt.setAttribute('letter-spacing','2');
+    ltxt.textContent=label+' ?';
+    svgL.appendChild(ltxt);
+  }
+
+  // connector between handles
+  const conn=document.createElementNS('http://www.w3.org/2000/svg','line');
+  conn.setAttribute('x1',redX);conn.setAttribute('y1',redY);conn.setAttribute('x2',grnX);conn.setAttribute('y2',grnY);
+  conn.setAttribute('stroke','rgba(200,210,230,0.2)');conn.setAttribute('stroke-width','1.5');conn.setAttribute('stroke-dasharray','5 4');
+  svgL.appendChild(conn);
+}
+
+// ── LOCK / PRINT ZONE ─────────────────────────────────────
+function lockZone(){
+  const prices=getCurrentPrices();
+  if(!prices||!currentVal||currentVal==='weak'){
+    const vs=document.getElementById('val-status');
+    vs.className='none'; vs.textContent='⚠ PRESS BID OR ASK FIRST';
+    return;
+  }
+  zones.push({
+    id:Date.now(),
+    top:prices.top, bot:prices.bot,
+    ct:prices.ct, cb:prices.cb,
+    type:currentVal,
+    entry:currentEntryPrice,
+    pair:PAIR
+  });
+  drawZones(); renderList();
+  svgL.innerHTML='';
+  currentVal=null; currentEntryPrice=null; pendingType=null;
+  document.getElementById('val-status').className='';
+  document.getElementById('val-status').textContent='ZONE LOCKED ✓';
+}
+
+function clearLive(){
+  svgL.innerHTML='';
+  currentVal=null; currentEntryPrice=null; pendingType=null;
+  document.getElementById('val-status').className='';
+  document.getElementById('val-status').textContent='PLACE ARROWS · PRESS BID OR ASK ON RING';
+}
+
+// ── DRAW LOCKED ZONES ─────────────────────────────────────
+function drawZones(){
+  svgZ.innerHTML='';
+  const W=window.innerWidth, H=window.innerHeight;
+  zones.forEach(z=>{
+    const rng=z.ct-z.cb; if(rng<=0)return;
+    const yT=((z.ct-z.top)/rng)*H;
+    const yB=((z.ct-z.bot)/rng)*H;
+    const h=Math.max(yB-yT,2);
+    const bid=z.type==='bid';
+    const col=bid?'#00e896':'#ff3d6b';
+    const d=dp(z.pair);
+
+    // gradient fill
+    const gid='g'+z.id;
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+    grad.setAttribute('id',gid);grad.setAttribute('x1','0');grad.setAttribute('x2','1');
+    const s1=document.createElementNS('http://www.w3.org/2000/svg','stop');s1.setAttribute('offset','0%');s1.setAttribute('stop-color',col);s1.setAttribute('stop-opacity','0.22');
+    const s2=document.createElementNS('http://www.w3.org/2000/svg','stop');s2.setAttribute('offset','100%');s2.setAttribute('stop-color',col);s2.setAttribute('stop-opacity','0.05');
+    grad.appendChild(s1);grad.appendChild(s2);defs.appendChild(grad);svgZ.appendChild(defs);
+
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',0);rect.setAttribute('y',yT);rect.setAttribute('width',W);rect.setAttribute('height',h);rect.setAttribute('fill',`url(#${gid})`);svgZ.appendChild(rect);
+
+    // top & bottom solid borders
+    [yT,yB].forEach(y=>{
+      const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',0);l.setAttribute('x2',W);l.setAttribute('y1',y);l.setAttribute('y2',y);
+      l.setAttribute('stroke',col);l.setAttribute('stroke-width','2');l.setAttribute('stroke-opacity','0.8');
+      svgZ.appendChild(l);
+    });
+
+    // ══ ENTRY LINE (black, ~1/3 into zone) ══
+    if(z.entry){
+      const yE=((z.ct-z.entry)/rng)*H;
+      const yCl=Math.max(yT+2,Math.min(yB-2,yE));
+
+      const strip=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      strip.setAttribute('x',0);strip.setAttribute('y',yCl-2);strip.setAttribute('width',W);strip.setAttribute('height',4);
+      strip.setAttribute('fill','rgba(0,0,0,0.75)');svgZ.appendChild(strip);
+
+      const lE=document.createElementNS('http://www.w3.org/2000/svg','line');
+      lE.setAttribute('x1',0);lE.setAttribute('x2',W);lE.setAttribute('y1',yCl);lE.setAttribute('y2',yCl);
+      lE.setAttribute('stroke','#000000');lE.setAttribute('stroke-width','2');lE.setAttribute('stroke-opacity','0.95');
+      svgZ.appendChild(lE);
+    }
+
+    // label
+    const midY=(yT+yB)/2;
+    const lbg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    lbg.setAttribute('x',10);lbg.setAttribute('y',yT+5);lbg.setAttribute('width',220);lbg.setAttribute('height',20);lbg.setAttribute('rx',3);
+    lbg.setAttribute('fill',bid?'rgba(0,80,40,0.8)':'rgba(80,0,20,0.8)');
+    svgZ.appendChild(lbg);
+    const ltxt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    ltxt.setAttribute('x',16);ltxt.setAttribute('y',yT+19);ltxt.setAttribute('fill',col);
+    ltxt.setAttribute('font-family','Oxanium,sans-serif');ltxt.setAttribute('font-weight','700');ltxt.setAttribute('font-size','11');ltxt.setAttribute('letter-spacing','2');
+    ltxt.textContent=(bid?'DARK BIDS':'DARK OFFERS')+' '+z.pair.replace('_','/')+' '+z.top.toFixed(d)+' – '+z.bot.toFixed(d);
+    svgZ.appendChild(ltxt);
+
+    // entry price label
+    if(z.entry){
+      const yE2=Math.max(yT+2,Math.min(yB-2,((z.ct-z.entry)/rng)*H));
+      const ebg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      ebg.setAttribute('x',W-165);ebg.setAttribute('y',yE2-9);ebg.setAttribute('width','155');ebg.setAttribute('height','18');ebg.setAttribute('rx','3');
+      ebg.setAttribute('fill','rgba(0,0,0,0.85)');ebg.setAttribute('stroke',col);ebg.setAttribute('stroke-width','0.8');
+      svgZ.appendChild(ebg);
+      const etxt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      etxt.setAttribute('x',W-159);etxt.setAttribute('y',yE2+4);etxt.setAttribute('fill',col);
+      etxt.setAttribute('font-family','Share Tech Mono,monospace');etxt.setAttribute('font-size','9.5');etxt.setAttribute('letter-spacing','1');
+      etxt.textContent='ENTRY '+z.entry.toFixed(d);
+      svgZ.appendChild(etxt);
+    }
+  });
+}
+
+function renderList(){
+  const l=document.getElementById('zlist');
+  if(!zones.length){l.innerHTML='<div style="font-size:9px;color:#3a5a6a;padding:5px 0;font-family:Share Tech Mono,monospace">No zones locked yet</div>';return}
+  l.innerHTML=zones.map(z=>`<div class="zi ${z.type}"><span>${z.type==='bid'?'▲ DARK BIDS':'▼ DARK OFFERS'} ${z.top.toFixed(dp(z.pair))}</span><button class="zdel" onclick="delZone(${z.id})">×</button></div>`).join('');
+}
+function delZone(id){zones=zones.filter(z=>z.id!==id);drawZones();renderList()}
+function clearAll(){zones=[];svgZ.innerHTML='';svgL.innerHTML='';renderList();currentVal=null;currentEntryPrice=null}
+
+// ── POSITIONING ───────────────────────────────────────────
+function posAll(){
+  ringEl.style.left=ringX+'px'; ringEl.style.top=ringY+'px'; ringEl.style.transform='translate(-50%,-50%)';
+  redH.style.left=redX+'px'; redH.style.top=redY+'px';
+  grnH.style.left=grnX+'px'; grnH.style.top=grnY+'px';
+  rLbl.style.left=(redX+28)+'px'; rLbl.style.top=(redY-10)+'px';
+  gLbl.style.left=(grnX+28)+'px'; gLbl.style.top=(grnY-10)+'px';
+  syncPrices();
+}
+
+// ── DRAG ─────────────────────────────────────────────────
+function evP(e){const t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY}}
+
+function startDrag(e,who){
+  // don't drag if clicking a button inside the ring SVG
+  if(who==='ring'&&e.target.closest('g[id^="btn-"]'))return;
+  dragging=who; const p=evP(e);
+  if(who==='ring'){dOX=p.x-ringX;dOY=p.y-ringY}
+  else if(who==='red'){dOX=p.x-redX;dOY=p.y-redY}
+  else if(who==='grn'){dOX=p.x-grnX;dOY=p.y-grnY}
+  else if(who==='panel'){const r=panelEl.getBoundingClientRect();panDX=p.x-r.left;panDY=p.y-r.top}
+  e.preventDefault(); e.stopPropagation();
+}
+
+ringEl.addEventListener('mousedown',e=>startDrag(e,'ring'),{passive:false});
+ringEl.addEventListener('touchstart',e=>startDrag(e,'ring'),{passive:false});
+redH.addEventListener('mousedown',e=>startDrag(e,'red'),{passive:false});
+redH.addEventListener('touchstart',e=>startDrag(e,'red'),{passive:false});
+grnH.addEventListener('mousedown',e=>startDrag(e,'grn'),{passive:false});
+grnH.addEventListener('touchstart',e=>startDrag(e,'grn'),{passive:false});
+document.getElementById('ph').addEventListener('mousedown',e=>startDrag(e,'panel'),{passive:false});
+document.getElementById('ph').addEventListener('touchstart',e=>startDrag(e,'panel'),{passive:true});
+
+function onMove(e){
+  if(!dragging)return;
+  const p=evP(e);
+  if(dragging==='ring'){
+    const dx=p.x-dOX-ringX, dy=p.y-dOY-ringY;
+    ringX+=dx; ringY+=dy; redX+=dx; redY+=dy; grnX+=dx; grnY+=dy;
+    posAll();
+  }else if(dragging==='red'){redX=p.x-dOX; redY=p.y-dOY; posAll()}
+  else if(dragging==='grn'){grnX=p.x-dOX; grnY=p.y-dOY; posAll()}
+  else if(dragging==='panel'){panelEl.style.right='auto';panelEl.style.left=(p.x-panDX)+'px';panelEl.style.top=(p.y-panDY)+'px'}
+  if(e.cancelable)e.preventDefault();
+}
+
+document.addEventListener('mousemove',onMove);
+document.addEventListener('touchmove',onMove,{passive:false});
+document.addEventListener('mouseup',()=>dragging=null);
+document.addEventListener('touchend',()=>dragging=null);
+
+function toggleBook(){const w=document.getElementById('bwrap'),t=document.getElementById('btog');w.classList.toggle('show');t.classList.toggle('open',w.classList.contains('show'))}
+function changePair(p){PAIR=p;fetchPrice();fetchBook()}
+
+['ict','icb'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{document.getElementById(id).dataset.t='1';syncPrices()}));
+window.addEventListener('resize',()=>{drawZones();updateLive()});
+renderList();
+</script>
+</body>
+</html>
